@@ -3,9 +3,9 @@
 require 'gtk2'
 require 'open3'
 
-require_relative './panel.rb'
-require_relative './version.rb'
-require_relative './config.rb'
+require 'unixcmd/panel'
+require 'unixcmd/version'
+require 'unixcmd/config'
 
 
 class CmdWnd < Gtk::Window
@@ -85,7 +85,7 @@ Gtk::AccelMap.add_entry '<unixcmd>/file/info', Gdk::Keyval::GDK_Return, Gdk::Win
 Gtk::AccelMap.add_entry '<unixcmd>/app/quit', Gdk::Keyval::GDK_F4, Gdk::Window::MOD1_MASK
 
 
-require_relative './cmd.rb'
+require 'unixcmd/cmd'
 
 
 $wnd = CmdWnd.new

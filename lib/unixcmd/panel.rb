@@ -1,5 +1,5 @@
 require 'sys/filesystem'
-require_relative './dirview'
+require 'unixcmd/dirview'
 
 class CmdPanelCaptionWidget < Gtk::HBox
     @mounts

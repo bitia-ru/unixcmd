@@ -1,6 +1,6 @@
 require 'launchy'
 require 'mime/types'
-require_relative './aux.rb'
+require 'unixcmd/aux'
 
 
 class CmdDirWidget < Gtk::Frame
