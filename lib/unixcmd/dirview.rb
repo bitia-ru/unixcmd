@@ -1,6 +1,6 @@
 require 'launchy'
 require 'mime/types'
-require 'unixcmd/aux'
+require '../lib/unixcmd/aux'
 
 
 class CmdDirWidget < Gtk::Frame
