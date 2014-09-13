@@ -46,7 +46,7 @@ class Pathname
 end
 
 # TODO: find another way
-UNITS = %W(k M G T).freeze
+UNITS = %W(kiB MiB GiB TiB).freeze
 
 class Integer 
     def to_szstr 
