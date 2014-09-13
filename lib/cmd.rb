@@ -26,6 +26,11 @@ $actMap.each_key do |key|
 end
 
 def cmd_file_copy(files, srcdir, dstdir)
+  builder = Gtk::Builder.new
+  builder.add_from_file 'data/forms/copydlg.glade'
+  dlg = builder.get_object 'dialog1'
+  dlg.run
+
   cpthread = Thread.new do
     files_with_path = files.map do |file|
       (srcdir+file).to_s
