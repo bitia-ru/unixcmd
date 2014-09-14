@@ -8,7 +8,11 @@ require 'thread'
 
 $actMap['<unixcmd>/panel/reload'] = Proc.new { $wnd.curpanel.reload }
 
-$actMap['<unixcmd>/file/copy']   = Proc.new { cmd_file_copy $wnd.curpanel.selection, $wnd.curpanel.path, $wnd.otherpanel.path }
+$actMap['<unixcmd>/file/copy']   = Proc.new do
+  cmd_file_copy $wnd.curpanel.selection, $wnd.curpanel.path, $wnd.otherpanel.path
+  $wnd.otherpanel.reload
+end
+
 $actMap['<unixcmd>/file/move']   = Proc.new { cmd_file_move $wnd.curpanel.selection, $wnd.curpanel.path, $wnd.otherpanel.path }
 $actMap['<unixcmd>/file/remove'] = Proc.new { cmd_file_remove $wnd.curpanel.selection }
 
@@ -28,20 +32,34 @@ end
 unixcmd_require 'copydlg'
 
 def cmd_file_copy(files, srcdir, dstdir)
-  dlg = CopyDlg.new
-  dlg.run
+  files_with_path = files.map do |file|
+    (srcdir+file).to_s
+  end
+
+  dlg = CopyDlg.new files_with_path, dstdir
+  res = dlg.run
+
+  flags = ''
+
+  flags << '-r ' if dlg.recursive?
+  flags << '-a ' if dlg.archive?
+  flags << '-v ' if dlg.verbose?
+  flags.strip!
+
+  unless res == 0
+    dlg.destroy
+    return
+  end
 
   cpthread = Thread.new do
-    files_with_path = files.map do |file|
-      (srcdir+file).to_s
-    end
-
-    puts "cp #{files_with_path.join ' '} → #{dstdir}"
+    puts `cp #{flags} #{files_with_path.join ' '} #{dstdir}`
   end
 
   cpthread.abort_on_exception = true
   cpthread.join
   cpthread.exit
+
+  dlg.destroy
 end
 
 def cmd_file_move(files, srcdir, dstdir)
