@@ -25,10 +25,10 @@ $actMap.each_key do |key|
   $accels.connect(key, &$actMap[key])
 end
 
+unixcmd_require 'copydlg'
+
 def cmd_file_copy(files, srcdir, dstdir)
-  builder = Gtk::Builder.new
-  builder.add_from_file 'data/forms/copydlg.glade'
-  dlg = builder.get_object 'dialog1'
+  dlg = CopyDlg.new
   dlg.run
 
   cpthread = Thread.new do
