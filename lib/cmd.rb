@@ -14,7 +14,11 @@ $actMap['<unixcmd>/file/copy']   = Proc.new do
 end
 
 $actMap['<unixcmd>/file/move']   = Proc.new { cmd_file_move $wnd.curpanel.selection, $wnd.curpanel.path, $wnd.otherpanel.path }
-$actMap['<unixcmd>/file/remove'] = Proc.new { cmd_file_remove $wnd.curpanel.selection }
+
+$actMap['<unixcmd>/file/remove'] = Proc.new do
+  cmd_file_remove $wnd.curpanel.selection, $wnd.curpanel.path
+  $wnd.curpanel.reload
+end
 
 $actMap['<unixcmd>/file/view'] = Proc.new { cmd_file_view $wnd.selected_file }
 $actMap['<unixcmd>/file/edit'] = Proc.new { cmd_file_edit $wnd.selected_file }
@@ -30,13 +34,14 @@ $actMap.each_key do |key|
 end
 
 unixcmd_require 'copydlg'
+unixcmd_require 'removedlg'
 
 def cmd_file_copy(files, srcdir, dstdir)
-  files_with_path = files.map do |file|
-    (srcdir+file).to_s
+  files_s = files.map do |file|
+    file.to_s
   end
 
-  dlg = CopyDlg.new files_with_path, dstdir
+  dlg = CopyDlg.new files_s, dstdir
   res = dlg.run
 
   flags = ''
@@ -52,7 +57,9 @@ def cmd_file_copy(files, srcdir, dstdir)
   end
 
   cpthread = Thread.new do
-    puts `cp #{flags} #{files_with_path.join ' '} #{dstdir}`
+    Dir.chdir(srcdir.expand_path.to_s) do
+      puts `cp #{flags} #{files_s.join ' '} #{dstdir.to_s}`
+    end
   end
 
   cpthread.abort_on_exception = true
@@ -76,12 +83,36 @@ def cmd_file_move(files, srcdir, dstdir)
   cpthread.exit
 end
 
-def cmd_file_remove(files)
+def cmd_file_remove(files, dir)
   files_s = files.map do |file|
     file.to_s
   end
 
-  puts "rm #{files_s.join ' '}"
+  dlg = RemoveDlg.new files_s
+  res = dlg.run
+
+  flags = ''
+
+  flags << '-r ' if dlg.recursive?
+  flags << '-v ' if dlg.verbose?
+  flags.strip!
+
+  unless res == 0
+    dlg.destroy
+    return
+  end
+
+  thread = Thread.new do
+    Dir.chdir(dir.expand_path.to_s) do
+      puts `rm #{flags} #{files_s.join ' '}`
+    end
+  end
+
+  thread.abort_on_exception = true
+  thread.join
+  thread.exit
+
+  dlg.destroy
 end
 
 def cmd_file_view(file)
