@@ -1,10 +1,11 @@
 # encoding: UTF-8
 
+require 'thread'
+
+
 $accels = Gtk::AccelGroup.new
 
 $actMap = Hash.new
-
-require 'thread'
 
 $actMap['<unixcmd>/panel/reload'] = Proc.new { $wnd.curpanel.reload }
 
@@ -13,7 +14,11 @@ $actMap['<unixcmd>/file/copy']   = Proc.new do
   $wnd.otherpanel.reload
 end
 
-$actMap['<unixcmd>/file/move']   = Proc.new { cmd_file_move $wnd.curpanel.selection, $wnd.curpanel.path, $wnd.otherpanel.path }
+$actMap['<unixcmd>/file/move']   = Proc.new do
+  cmd_file_move $wnd.curpanel.selection, $wnd.curpanel.path, $wnd.otherpanel.path
+  $wnd.curpanel.reload
+  $wnd.otherpanel.reload
+end
 
 $actMap['<unixcmd>/file/remove'] = Proc.new do
   cmd_file_remove $wnd.curpanel.selection, $wnd.curpanel.path
@@ -35,6 +40,7 @@ end
 
 unixcmd_require 'copydlg'
 unixcmd_require 'removedlg'
+unixcmd_require 'movedlg'
 
 def cmd_file_copy(files, srcdir, dstdir)
   files_s = files.map do |file|
@@ -70,17 +76,34 @@ def cmd_file_copy(files, srcdir, dstdir)
 end
 
 def cmd_file_move(files, srcdir, dstdir)
-  cpthread = Thread.new do
-    files_with_path = files.map do |file|
-      (srcdir+file).to_s
-    end
-
-    puts "mv #{files_with_path.join ' '} → #{dstdir}"
+  files_s = files.map do |file|
+    file.to_s
   end
 
-  cpthread.abort_on_exception = true
-  cpthread.join
-  cpthread.exit
+  dlg = MoveDlg.new files_s, dstdir
+  res = dlg.run
+
+  flags = ''
+
+  flags << '-v ' if dlg.verbose?
+  flags.strip!
+
+  unless res == 0
+    dlg.destroy
+    return
+  end
+
+  mvthread = Thread.new do
+    Dir.chdir(srcdir.expand_path.to_s) do
+      puts `mv #{flags} #{files_s.join ' '} #{dstdir.to_s}`
+    end
+  end
+
+  mvthread.abort_on_exception = true
+  mvthread.join
+  mvthread.exit
+
+  dlg.destroy
 end
 
 def cmd_file_remove(files, dir)
