@@ -1,18 +1,50 @@
 # encoding: UTF-8
 
 class CopyDlg
+  SRC_FEW = 3
+
   @builder
   @dlg
-  @cmdline
+  @srcline
+  @srclist
+  @dstline
+  @dstentry
   @flags
+  @singlesrc
+  @fewsrc
 
   def initialize files, dest
     @builder = Gtk::Builder.new
     @builder.add_from_file 'data/forms/copydlg.glade'
     @dlg = @builder.get_object 'CopyDlg'
-    @cmdline = @builder.get_object 'CmdLine'
+    @srcline = @builder.get_object 'SrcLine'
+    @srclist = @builder.get_object 'SrcList'
+    @dstline = @builder.get_object 'DstLine'
+    @dstentry = @builder.get_object 'DstEntry'
 
-    @cmdline.text = "#{files.join ' '} → #{dest}"
+    @singlesrc = files.count == 1
+    @fewsrc = files.count < SRC_FEW
+
+    unless @singlesrc == true
+      @dstline.show
+      @dstentry.hide
+
+      @dstline.text = dest
+    else
+      @dstentry.text = dest
+    end
+
+    unless @fewsrc == true
+      @srcline.hide
+      @srclist.show
+
+      files.each do |file|
+        row = @srclist.model.append
+        row[0] = file
+      end
+    else
+      @srcline.text = files.join ' '
+    end
 
     @flags = {
       :recursive => @builder.get_object('RecursiveFlag'),
@@ -39,6 +71,10 @@ class CopyDlg
 
   def verbose?
     @flags[:verbose].active?
+  end
+
+  def dest
+    @singlesrc == true ? @dstentry.text : @dstline.text
   end
 end
 

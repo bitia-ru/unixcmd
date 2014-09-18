@@ -47,7 +47,7 @@ def cmd_file_copy(files, srcdir, dstdir)
     file.to_s
   end
 
-  dlg = CopyDlg.new files_s, dstdir
+  dlg = CopyDlg.new files_s, dstdir.to_s
   res = dlg.run
 
   flags = ''
@@ -56,6 +56,8 @@ def cmd_file_copy(files, srcdir, dstdir)
   flags << '-a ' if dlg.archive?
   flags << '-v ' if dlg.verbose?
   flags.strip!
+
+  dstdir = Pathname.new(dlg.dest)
 
   unless res == 0
     dlg.destroy

@@ -71,7 +71,7 @@ class Time
     alias_method :old_strftime, :strftime
 
     def strftime(format)
-        if ENV['LANG'] == 'ru_RU.UTF-8' then
+        if ENV['LANG'] == 'ru_RU.UTF-8'
             format = format.sub '%x', '%d.%m.%Y'
         end
 
@@ -82,10 +82,19 @@ end
 class MIME::Types
     def self.get_icon_names(filepath)
         types = MIME::Types.of filepath
+
         return nil if types == nil || types.count == 0
+
         script_path = Pathname.new(__FILE__).expand_path.dirname.to_s
-        res = `#{script_path}/gnome-get-filetype-icon #{types[0]}`
+
+        begin
+            res = `#{script_path}/gnome-get-filetype-icon #{types[0]}`
+        rescue
+            return nil
+        end
+
         return (res.strip.split ' ').drop(2) if $? == 0
+
         nil
     end
 

@@ -1,5 +1,6 @@
 require 'launchy'
 require 'mime/types'
+
 unixcmd_require 'aux'
 
 
@@ -97,7 +98,7 @@ class CmdDirWidget < Gtk::Frame
 
             row[0] = file.to_s
 
-            if full_path.directory? then
+            if full_path.directory?
                 row[1] = file.to_s + '/'
                 row[3] = '<DIR>'
             else
@@ -121,7 +122,7 @@ class CmdDirWidget < Gtk::Frame
 
         file = iter.get_value 0
 
-        if (expanded_path + Pathname.new(file)).directory? then
+        if (expanded_path + Pathname.new(file)).directory?
             chdir @path + Pathname.new(file)
         else
             Launchy.open (expanded_path + Pathname.new(file)).to_s
@@ -136,11 +137,11 @@ class CmdDirWidget < Gtk::Frame
 
         reload
 
-        if path == old_path.parent then
+        if path == old_path.parent
             dirname = old_path.basename
 
             @view.model.each do |model, path, iter|
-                if iter.get_value(0) == dirname.to_s then
+                if iter.get_value(0) == dirname.to_s
                     @view.selection.select_path path
                     @view.set_cursor path, nil, false
                     break
@@ -149,7 +150,7 @@ class CmdDirWidget < Gtk::Frame
 
         end
 
-        if @view.selection.count_selected_rows == 0 then
+        if @view.selection.count_selected_rows == 0
             @view.selection.select_iter @view.model.iter_first
             @view.set_cursor @view.model.iter_first.path, nil, false
         end
