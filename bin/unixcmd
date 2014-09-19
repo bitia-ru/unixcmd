@@ -1,6 +1,7 @@
 #!/usr/bin/ruby19
 
 require 'gtk2'
+require 'vte'
 require 'open3'
 require 'pathname'
 
@@ -32,6 +33,7 @@ class CmdWnd < Gtk::Window
     @panes
     @left
     @right
+    @terminal
 
     def left() @left end
     def right() @right end
@@ -47,11 +49,16 @@ class CmdWnd < Gtk::Window
         @panes = Gtk::HPaned.new
         @left = CmdPanelWidget.new
         @right = CmdPanelWidget.new
+        @terminal = Vte::Terminal.new
+
+        @terminal.height_request = 10
+        @terminal.fork_command({:argv => ['bash']})
 
         @panes.pack1 @left, true, true
         @panes.pack2 @right, true, true
 
         @vbox.pack_start @panes, true
+        @vbox.pack_start @terminal, true
 
         add @vbox
 
@@ -61,6 +68,9 @@ class CmdWnd < Gtk::Window
 
         set_default_size 1024, 768 
         show_all
+
+        sleep 1
+        @terminal.feed_child 'bind -x \'"\033d":". /tmp/tmp.sh"\'' + "\nclear\n"
     end
 
     def curpanel
@@ -79,6 +89,11 @@ class CmdWnd < Gtk::Window
 
     def destroy
         Gtk.main_quit
+    end
+
+    def cmd data
+      IO.write '/tmp/tmp.sh', data + "\n"
+      @terminal.feed_child "\033d\n"
     end
 end
 

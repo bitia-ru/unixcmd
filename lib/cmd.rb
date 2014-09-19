@@ -12,6 +12,7 @@ $actMap['<unixcmd>/panel/reload'] = Proc.new { $wnd.curpanel.reload }
 $actMap['<unixcmd>/file/copy']   = Proc.new do
   cmd_file_copy $wnd.curpanel.selection, $wnd.curpanel.path, $wnd.otherpanel.path
   $wnd.otherpanel.reload
+  $wnd.curpanel.reload if $wnd.curpanel.path == $wnd.otherpanel.path
 end
 
 $actMap['<unixcmd>/file/move']   = Proc.new do
@@ -23,6 +24,13 @@ end
 $actMap['<unixcmd>/file/remove'] = Proc.new do
   cmd_file_remove $wnd.curpanel.selection, $wnd.curpanel.path
   $wnd.curpanel.reload
+  $wnd.otherpanel.reload if $wnd.curpanel.path == $wnd.otherpanel.path
+end
+
+$actMap['<unixcmd>/file/mkdir'] = Proc.new do
+  cmd_file_mkdir $wnd.curpanel.path
+  $wnd.curpanel.reload
+  $wnd.otherpanel.reload if $wnd.curpanel.path == $wnd.otherpanel.path
 end
 
 $actMap['<unixcmd>/file/view'] = Proc.new { cmd_file_view $wnd.selected_file }
@@ -32,7 +40,7 @@ $actMap['<unixcmd>/file/info'] = Proc.new { cmd_file_info $wnd.selected_file }
 
 $actMap['<unixcmd>/app/quit']  = Proc.new { $wnd.destroy }
 
-$actMap['<unixcmd>/test/print_selection'] = Proc.new { p $wnd.curpanel.selection }
+$actMap['<unixcmd>/test/print_selection'] = Proc.new { p $wnd.curpanel.selection; $wnd.cmd "cd #{$wnd.curpanel.path.to_s}" }
 
 $actMap.each_key do |key|
   $accels.connect(key, &$actMap[key])
@@ -41,6 +49,7 @@ end
 unixcmd_require 'copydlg'
 unixcmd_require 'removedlg'
 unixcmd_require 'movedlg'
+unixcmd_require 'mkdirdlg'
 
 def cmd_file_copy(files, srcdir, dstdir)
   files_s = files.map do |file|
@@ -66,7 +75,7 @@ def cmd_file_copy(files, srcdir, dstdir)
 
   cpthread = Thread.new do
     Dir.chdir(srcdir.expand_path.to_s) do
-      puts `cp #{flags} #{files_s.join ' '} #{dstdir.to_s}`
+      $wnd.cmd "cp #{flags} #{files_s.join ' '} #{dstdir.to_s}"
     end
   end
 
@@ -97,7 +106,7 @@ def cmd_file_move(files, srcdir, dstdir)
 
   mvthread = Thread.new do
     Dir.chdir(srcdir.expand_path.to_s) do
-      puts `mv #{flags} #{files_s.join ' '} #{dstdir.to_s}`
+      puts $wnd.cmd "mv #{flags} #{files_s.join ' '} #{dstdir.to_s}"
     end
   end
 
@@ -129,7 +138,36 @@ def cmd_file_remove(files, dir)
 
   thread = Thread.new do
     Dir.chdir(dir.expand_path.to_s) do
-      puts `rm #{flags} #{files_s.join ' '}`
+      $wnd.cmd "rm #{flags} #{files_s.join ' '}"
+    end
+  end
+
+  thread.abort_on_exception = true
+  thread.join
+  thread.exit
+
+  dlg.destroy
+end
+
+def cmd_file_mkdir(dir)
+  dlg = MkDirDlg.new
+  res = dlg.run
+
+  flags = ''
+
+  flags << '-v ' if dlg.verbose?
+  flags.strip!
+
+  dirname = dlg.dirname
+
+  unless res == 0
+    dlg.destroy
+    return
+  end
+
+  thread = Thread.new do
+    Dir.chdir(dir.expand_path.to_s) do
+      $wnd.cmd "mkdir #{flags} #{dirname}"
     end
   end
 
