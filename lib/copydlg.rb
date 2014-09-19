@@ -1,7 +1,7 @@
 # encoding: UTF-8
 
 class CopyDlg
-  SRC_FEW = 3
+  FILES_FEW = 3
 
   @builder
   @dlg
@@ -23,12 +23,9 @@ class CopyDlg
     @dstentry = @builder.get_object 'DstEntry'
 
     @singlesrc = files.count == 1
-    @fewsrc = files.count < SRC_FEW
+    @fewsrc = files.count <= FILES_FEW
 
     unless @singlesrc == true
-      @dstline.show
-      @dstentry.hide
-
       @dstline.text = dest
     else
       @dstentry.text = dest
