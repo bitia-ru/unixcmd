@@ -34,6 +34,7 @@ class CmdWnd < Gtk::Window
     @left
     @right
     @terminal
+    @curpanel
 
     def left() @left end
     def right() @right end
@@ -45,7 +46,7 @@ class CmdWnd < Gtk::Window
 
         set_border_width 5
 
-        @vbox = Gtk::VBox.new
+        @vbox = Gtk::VPaned.new
         @panes = Gtk::HPaned.new
         @left = CmdPanelWidget.new
         @right = CmdPanelWidget.new
@@ -57,12 +58,13 @@ class CmdWnd < Gtk::Window
         @panes.pack1 @left, true, true
         @panes.pack2 @right, true, true
 
-        @vbox.pack_start @panes, true
-        @vbox.pack_start @terminal, true
+        @vbox.pack1 @panes, true, true
+        @vbox.pack2 @terminal, true, true
 
         add @vbox
 
         signal_connect('destroy') { destroy }
+        signal_connect('set-focus') { |s, w| focus_changed w }
 
         self.focus_chain = [@left, @right]
 
@@ -71,20 +73,36 @@ class CmdWnd < Gtk::Window
 
         sleep 1
         @terminal.feed_child 'bind -x \'"\033d":". /tmp/tmp.sh"\'' + "\nclear\n"
+        cmd "cd #{curpanel.path}\n"
+        cmd "export PROMPT_COMMAND='echo a'"
+        @terminal.feed_child "clear\n"
+        @terminal.signal_connect('child-exited') { destroy }
+
+        @curpanel = @left
     end
 
     def curpanel
-        return @left if self.focus.parent.parent.parent == @left
-        @right
+      @curpanel
     end
 
     def otherpanel
-        return @left if self.focus.parent.parent.parent == @right
+        return @left if @curpanel == @right
         @right
     end
 
+    def focus_changed widget
+      return unless widget
+
+      oldcur = curpanel
+
+      @curpanel = @left if widget.inside? @left
+      @curpanel = @right if widget.inside? @right
+
+      cmd "cd #{curpanel.path}" unless oldcur == curpanel
+    end
+
     def selected_file
-        curpanel().path + curpanel().selection[0]
+        curpanel.path + curpanel.selection[0]
     end
 
     def destroy

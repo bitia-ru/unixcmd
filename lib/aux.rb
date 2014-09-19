@@ -122,6 +122,18 @@ class Gtk::Widget
         signal_connect('clicked') { $actMap[path].call }
         self
     end
+
+    def inside? widget
+        w = self
+
+        while w do
+            return true if w == widget
+
+            w = w.parent
+        end
+
+        false
+    end
 end
 
 # continue from exception
