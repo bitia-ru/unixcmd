@@ -74,7 +74,7 @@ class CmdWnd < Gtk::Window
         sleep 1
         @terminal.feed_child 'bind -x \'"\033d":". /tmp/tmp.sh"\'' + "\nclear\n"
         cmd "cd #{curpanel.path}\n"
-        cmd "export PROMPT_COMMAND='echo a'"
+        #cmd "export PROMPT_COMMAND='echo a'"
         @terminal.feed_child "clear\n"
         @terminal.signal_connect('child-exited') { destroy }
 

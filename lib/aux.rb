@@ -88,7 +88,7 @@ class MIME::Types
         script_path = Pathname.new(__FILE__).expand_path.dirname.to_s
 
         begin
-            res = `#{script_path}/gnome-get-filetype-icon #{types[0]}`
+            res = `#{script_path}/../gnome-get-filetype-icon #{types[0]}`
         rescue
             return nil
         end
