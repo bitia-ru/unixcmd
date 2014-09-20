@@ -1,3 +1,8 @@
+v0.2 20 Sep 2014
+	+ Copy, remove, mkdir, move forms in Glade development
+	+ Terminal pane added
+	+ Interaction between terminal and unixcmd developed
+
 19 Apr 2014
 	+ Checkbox column in dirview, selection methods and so on
 	+ Bottom buttons list removed
