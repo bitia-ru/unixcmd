@@ -5,7 +5,6 @@ require 'vte'
 require 'open3'
 require 'pathname'
 
-
 begin
   require_relative '../lib/devel'
 
@@ -54,6 +53,9 @@ class CmdWnd < Gtk::Window
 
         @terminal.height_request = 10
         @terminal.fork_command({:argv => ['bash']})
+        @terminal.set_font 'DejaVu Sans Mono Book 9.5'
+        @terminal.allow_bold = false
+        @terminal.scrollback_lines = 99999 
 
         @panes.pack1 @left, true, true
         @panes.pack2 @right, true, true
@@ -63,6 +65,8 @@ class CmdWnd < Gtk::Window
 
         add @vbox
 
+        @left.signal_connect('dir-changed') { dir_changed @left } 
+        @right.signal_connect('dir-changed') { dir_changed @right } 
         signal_connect('destroy') { destroy }
         signal_connect('set-focus') { |s, w| focus_changed w }
 
@@ -99,6 +103,10 @@ class CmdWnd < Gtk::Window
       @curpanel = @right if widget.inside? @right
 
       cmd "cd #{curpanel.path}" unless oldcur == curpanel
+    end
+
+    def dir_changed pane
+      cmd "cd #{pane.path}"
     end
 
     def selected_file

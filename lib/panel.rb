@@ -108,7 +108,7 @@ class CmdPanelWidget < Gtk::VBox
         pack_start @caption, false
         pack_end @dir
 
-        @dir.signal_connect('dir-changed') { update_caption }
+        @dir.signal_connect('dir-changed') { update_caption; signal_emit 'dir-changed' }
         @caption.signal_connect('go-root') { @dir.chdir Pathname.new '/' }
         @caption.signal_connect('go-home') { @dir.chdir Pathname.new '~' }
         @caption.signal_connect('go-back') { @dir.back }
@@ -156,4 +156,10 @@ class CmdPanelWidget < Gtk::VBox
     def reload
         @dir.reload
     end
+
+    type_register
+
+    signal_new('dir_changed', GLib::Signal::RUN_FIRST, nil, nil)
+
+    def signal_do_dir_changed() nil end
 end

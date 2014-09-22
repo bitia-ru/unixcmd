@@ -11,26 +11,18 @@ $actMap['<unixcmd>/panel/reload'] = Proc.new { $wnd.curpanel.reload }
 
 $actMap['<unixcmd>/file/copy']   = Proc.new do
   cmd_file_copy $wnd.curpanel.selection, $wnd.curpanel.path, $wnd.otherpanel.path
-  $wnd.otherpanel.reload
-  $wnd.curpanel.reload if $wnd.curpanel.path == $wnd.otherpanel.path
 end
 
 $actMap['<unixcmd>/file/move']   = Proc.new do
   cmd_file_move $wnd.curpanel.selection, $wnd.curpanel.path, $wnd.otherpanel.path
-  $wnd.curpanel.reload
-  $wnd.otherpanel.reload
 end
 
 $actMap['<unixcmd>/file/remove'] = Proc.new do
   cmd_file_remove $wnd.curpanel.selection, $wnd.curpanel.path
-  $wnd.curpanel.reload
-  $wnd.otherpanel.reload if $wnd.curpanel.path == $wnd.otherpanel.path
 end
 
 $actMap['<unixcmd>/file/mkdir'] = Proc.new do
   cmd_file_mkdir $wnd.curpanel.path
-  $wnd.curpanel.reload
-  $wnd.otherpanel.reload if $wnd.curpanel.path == $wnd.otherpanel.path
 end
 
 $actMap['<unixcmd>/file/view'] = Proc.new { cmd_file_view $wnd.selected_file }
