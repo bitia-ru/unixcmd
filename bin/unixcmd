@@ -57,6 +57,10 @@ class CmdWnd < Gtk::Window
         @terminal.allow_bold = false
         @terminal.scrollback_lines = 99999 
 
+        # add hotkey to switch to/from console (Ctrl-C)
+        # inactivate console when execute commands in bash
+        @terminal.sensitive = false
+
         @panes.pack1 @left, true, true
         @panes.pack2 @right, true, true
 
