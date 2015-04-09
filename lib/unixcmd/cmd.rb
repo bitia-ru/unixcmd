@@ -38,10 +38,9 @@ $actMap.each_key do |key|
   $accels.connect(key, &$actMap[key])
 end
 
-unixcmd_require 'copydlg'
-unixcmd_require 'removedlg'
-unixcmd_require 'movedlg'
-unixcmd_require 'mkdirdlg'
+[ 'copydlg', 'removedlg', 'movedlg', 'mkdirdlg' ].each do |lib|
+    require "unixcmd/#{lib}"
+end
 
 def cmd_file_copy(files, srcdir, dstdir)
   files_s = files.map do |file|

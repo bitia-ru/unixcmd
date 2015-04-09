@@ -79,6 +79,8 @@ class Time
     end
 end
 
+require 'gnome_get_filetype_icon/gnome_get_filetype_icon'
+
 class MIME::Types
     def self.get_icon_names(filepath)
         types = MIME::Types.of filepath

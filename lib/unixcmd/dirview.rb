@@ -1,7 +1,7 @@
 require 'launchy'
 require 'mime/types'
 
-unixcmd_require 'aux'
+require 'unixcmd/aux'
 
 
 class CmdDirWidget < Gtk::Frame
@@ -71,14 +71,14 @@ class CmdDirWidget < Gtk::Frame
     def path() @path end
     def expanded_path() @path.expand_path end
 
-    def back() chdir(@path + Pathname.new('..')) end
+    def back() chdir @path + '..' end
 
     def reload
         model = @view.model
 
         model.clear
 
-        @view.columns[0].set_visible(false)
+        @view.columns[0].set_visible false
 
         files = expanded_path.entries.sort 
 
@@ -103,12 +103,12 @@ class CmdDirWidget < Gtk::Frame
                 row[3] = '<DIR>'
             else
                 row[1] = file.basename('.*').to_s
-                row[3] = full_path.stat.size.to_i.to_szstr
+                row[3] = full_path.exist? ? full_path.size.to_i.to_szstr : 0.to_szstr
             end
 
             row[2] = file.extname
-            row[4] = Time.at(full_path.stat.mtime).strftime '%x %R'
-            row[5] = full_path.stat.mode.to_rwx
+            row[4] = Time.at(full_path.mtime).strftime '%x %R' if full_path.exist?
+            row[5] = full_path.stat.mode.to_rwx if full_path.exist?
             row[6] = Gdk::Pixbuf.new file_icon_path.to_s
             row[7] = 0
         end

@@ -5,26 +5,9 @@ require 'vte'
 require 'open3'
 require 'pathname'
 
-begin
-  require_relative '../lib/devel'
-
-  def unixcmd_require file
-    path = Pathname.new(__FILE__).dirname.expand_path.to_s
-    require "#{path}/../lib/#{file}"
-  end
-rescue LoadError => e
-  puts 'Production execution'
-
-  def unixcmd_require file
-    require "unixcmd/#{file}"
-  end
+[ 'panel', 'version', 'config' ].each do |lib|
+    require "unixcmd/#{lib}"
 end
-
-
-unixcmd_require 'panel'
-unixcmd_require 'version'
-unixcmd_require 'config'
-
 
 class CmdWnd < Gtk::Window
     @vbox
@@ -53,13 +36,12 @@ class CmdWnd < Gtk::Window
 
         @terminal.height_request = 10
         @terminal.fork_command({:argv => ['bash']})
-        @terminal.set_font 'DejaVu Sans Mono Book 9.5'
-        @terminal.allow_bold = false
+        @terminal.set_font 'Monospace'
         @terminal.scrollback_lines = 99999 
 
         # add hotkey to switch to/from console (Ctrl-C)
         # inactivate console when execute commands in bash
-        @terminal.sensitive = false
+        #@terminal.sensitive = false
 
         @panes.pack1 @left, true, true
         @panes.pack2 @right, true, true
@@ -80,10 +62,10 @@ class CmdWnd < Gtk::Window
         show_all
 
         sleep 1
-        @terminal.feed_child 'bind -x \'"\033d":". /tmp/tmp.sh"\'' + "\nclear\n"
+        @terminal.feed_child 'bind -x \'"\033d":". /tmp/tmp.sh"\'' + "\n"
         cmd "cd #{curpanel.path}\n"
         #cmd "export PROMPT_COMMAND='echo a'"
-        @terminal.feed_child "clear\n"
+        #@terminal.feed_child "clear\n"
         @terminal.signal_connect('child-exited') { destroy }
 
         @curpanel = @left
@@ -148,7 +130,7 @@ Gtk::AccelMap.add_entry '<unixcmd>/file/info', Gdk::Keyval::GDK_Return, Gdk::Win
 Gtk::AccelMap.add_entry '<unixcmd>/app/quit', Gdk::Keyval::GDK_F4, Gdk::Window::MOD1_MASK
 
 
-unixcmd_require 'cmd'
+require 'unixcmd/cmd'
 
 
 $wnd = CmdWnd.new
