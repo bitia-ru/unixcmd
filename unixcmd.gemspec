@@ -14,5 +14,8 @@ Gem::Specification.new do |s|
   s.license     = 'MIT'
   s.extensions  = ['ext/gnome_get_filetype_icon/extconf.rb']
 
-  s.add_runtime_dependency 'launchy', '~> 0'
+  s.add_runtime_dependency 'launchy', '~> 2.4'
+  s.add_runtime_dependency 'gtk2', '~> 2.2'
+  s.add_runtime_dependency 'sys-filesystem', '~> 1.1'
+  s.add_runtime_dependency 'mime-types', '~> 2.4'
 end

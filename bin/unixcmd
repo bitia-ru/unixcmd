@@ -36,7 +36,29 @@ class CmdWnd < Gtk::Window
 
         @terminal.height_request = 10
         @terminal.fork_command({:argv => ['bash']})
-        @terminal.set_font 'Monospace'
+        @terminal.set_font 'Monospace 10'
+        @terminal.cursor_blinks = false
+        @terminal.set_colors Gdk::Color.new(65535, 65535, 65535),
+                             Gdk::Color.new(33*256, 33*256, 33*256),
+                             [
+                               Gdk::Color.new(0, 0, 0),
+                               Gdk::Color.new(170*256, 0, 0),
+                               Gdk::Color.new(0, 170*256, 0),
+                               Gdk::Color.new(170*256, 85*256, 0),
+                               Gdk::Color.new(0, 0, 170*256),
+                               Gdk::Color.new(170*256, 0, 170*256),
+                               Gdk::Color.new(0, 170*256, 170*256),
+                               Gdk::Color.new(170*256, 170*256, 170*256),
+                               Gdk::Color.new(85*256, 85*256, 85*256),
+                               Gdk::Color.new(256*256-1, 85*256, 85*256),
+                               Gdk::Color.new(85*256, 256*256-1, 85*256),
+                               Gdk::Color.new(256*256-1, 256*256-1, 85*256),
+                               Gdk::Color.new(85*256, 85*256, 256*256-1),
+                               Gdk::Color.new(256*256-1, 85*256, 256*256-1),
+                               Gdk::Color.new(85*256, 256*256-1, 256*256-1),
+                               Gdk::Color.new(256*256-1, 256*256-1, 256*256-1),
+                             ]
+        @terminal.color_cursor = Gdk::Color.new 0, 170*256, 0
         @terminal.scrollback_lines = 99999 
 
         # add hotkey to switch to/from console (Ctrl-C)

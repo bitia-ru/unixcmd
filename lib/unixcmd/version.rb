@@ -1,2 +1,2 @@
 APP_NAME = 'unixcmd'
-APP_VERSION = '0.2.6'
+APP_VERSION = '0.2.7'
