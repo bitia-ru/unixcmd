@@ -129,6 +129,12 @@ class CmdWnd < Gtk::Window
       IO.write '/tmp/tmp.sh', data + "\n"
       @terminal.feed_child "\033d\n"
     end
+
+    def term_toggle
+      @panes.visible = !@panes.visible?
+
+      @terminal.focus = true unless @panes.visible?
+    end
 end
 
 
@@ -144,6 +150,8 @@ Gtk::AccelMap.add_entry '<unixcmd>/file/copy',   Gdk::Keyval::GDK_F5, nil
 Gtk::AccelMap.add_entry '<unixcmd>/file/move',   Gdk::Keyval::GDK_F6, nil 
 Gtk::AccelMap.add_entry '<unixcmd>/file/mkdir',  Gdk::Keyval::GDK_F7, nil 
 Gtk::AccelMap.add_entry '<unixcmd>/file/remove', Gdk::Keyval::GDK_F8, Gdk::Window::SHIFT_MASK 
+
+Gtk::AccelMap.add_entry '<unixcmd>/terminal/toggle', Gdk::Keyval::GDK_O, Gdk::Window::CONTROL_MASK 
 
 Gtk::AccelMap.add_entry '<unixcmd>/test/print_selection', Gdk::Keyval::GDK_F11, nil 
 

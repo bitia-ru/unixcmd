@@ -25,6 +25,8 @@ $actMap['<unixcmd>/file/mkdir'] = Proc.new do
   cmd_file_mkdir $wnd.curpanel.path
 end
 
+$actMap['<unixcmd>/terminal/toggle'] = Proc.new { $wnd.term_toggle }
+
 $actMap['<unixcmd>/file/view'] = Proc.new { cmd_file_view $wnd.selected_file }
 $actMap['<unixcmd>/file/edit'] = Proc.new { cmd_file_edit $wnd.selected_file }
 
