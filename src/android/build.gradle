@@ -1,0 +1,49 @@
+buildscript {
+    repositories {
+        jcenter()
+        google()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.5.3'
+    }
+}
+
+allprojects {
+    repositories {
+        jcenter()
+        google()
+
+        flatDir {
+            dirs 'libs'
+        }
+    }
+}
+apply plugin: 'com.android.application'
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+}
+
+android {
+    compileSdkVersion androidCompileSdkVersion.toInteger()
+
+    buildToolsVersion '29.0.2'
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = [qt6AndroidDir + '/src', 'src', 'java']
+            aidl.srcDirs = [qt6AndroidDir + '/src', 'src', 'aidl']
+            res.srcDirs = [qt6AndroidDir + '/res', 'res']
+            resources.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            assets.srcDirs = ['assets']
+            jniLibs.srcDirs = ['libs']
+       }
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+}
