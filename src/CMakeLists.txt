@@ -1,7 +1,12 @@
 if(ANDROID)
   qt_add_library(${PROJECT_NAME} SHARED)
 else()
-  qt_add_executable(${PROJECT_NAME} main.cpp main_window.cpp)
+  qt_add_executable(
+    ${PROJECT_NAME}
+      main.cpp
+      main_window.cpp
+      directory_widget.cpp
+    )
 endif()
 
 qt_add_qml_module(
