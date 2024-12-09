@@ -5,7 +5,11 @@ else()
     ${PROJECT_NAME}
       main.cpp
       main_window.cpp
+      main_window.h
       directory_widget.cpp
+      directory_widget.h
+      double_panel_splitter.cpp
+      double_panel_splitter.h
     )
 endif()
 

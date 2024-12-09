@@ -1,7 +1,7 @@
-import QtQuick 6.0
-import QtQuick.Window 6.0
-import QtQuick.Controls 6.0
-import QtQml 6.0
+import QtQuick
+import QtQuick.Window
+import QtQuick.Controls
+import QtQml
 
 ApplicationWindow
 {
