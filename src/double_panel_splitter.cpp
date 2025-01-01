@@ -20,8 +20,6 @@ public:
 DoublePanelSplitter::DoublePanelSplitter(QWidget* parent)
     : QSplitter(parent)
 {
-    qDebug() << "FOOOOO";
-
     installEventFilter(this);
 }
 
