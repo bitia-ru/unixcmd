@@ -1,6 +1,7 @@
 #include "directory_widget.h"
 
 #include <QDir>
+#include <QFileIconProvider>
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QKeyEvent>
@@ -36,7 +37,7 @@ QTableWidgetItem* fileSizeItemByEntry(const QFileInfo& entry)
             : QLocale::system().toString(size);
 
         item->setText(text);
-        item->setTextAlignment(Qt::AlignLeft);
+        item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     }
 
     return item;
@@ -89,7 +90,7 @@ DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableWidget(parent)
 
     setDirectory(QDir::currentPath());
 
-    const auto onCellEntered = [this](QTableWidgetItem* item) {
+    const auto onCellEntered = [this](const QTableWidgetItem* item) {
         const auto fileNameItem = this->item(item->row(), 0);
 
         const QString fileName = fileNameItem->text() == "[..]" ? ".." : fileNameItem->text();
@@ -131,7 +132,15 @@ void DirectoryWidget::setDirectory(const QString& directory)
 
         insertRow(iRow);
 
-        setItem(iRow, 0, new QTableWidgetItem(fileNameByEntry(entry)));
+        auto fileEntry = new QTableWidgetItem(fileNameByEntry(entry));
+
+        QFileIconProvider iconProvider;
+        QIcon icon = iconProvider.icon(entry);
+
+        if (!icon.isNull())
+            fileEntry->setIcon(icon);
+
+        setItem(iRow, 0, fileEntry);
 
         auto extItem = new QTableWidgetItem(entry.suffix());
         extItem->setTextAlignment(Qt::AlignCenter);
@@ -140,7 +149,7 @@ void DirectoryWidget::setDirectory(const QString& directory)
         setItem(iRow, 2, fileSizeItemByEntry(entry));
 
         auto dateItem = new QTableWidgetItem(entry.lastModified().toString("dd/MM/yy hh:mm"));
-        dateItem->setTextAlignment(Qt::AlignLeft);
+        dateItem->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         setItem(iRow, 3, dateItem);
 
         setItem(iRow, 4, attrItemByEntry(entry));
@@ -148,6 +157,11 @@ void DirectoryWidget::setDirectory(const QString& directory)
 
     if (rowCount() > 0)
         selectRow(0);
+}
+
+void DirectoryWidget::reload()
+{
+    setDirectory(m_directory);
 }
 
 void DirectoryWidget::keyPressEvent(QKeyEvent* event)
@@ -158,4 +172,11 @@ void DirectoryWidget::keyPressEvent(QKeyEvent* event)
     }
 
     QTableWidget::keyPressEvent(event);
+}
+
+void DirectoryWidget::focusInEvent(QFocusEvent* event)
+{
+    QTableWidget::focusInEvent(event);
+
+    emit focusIn();
 }

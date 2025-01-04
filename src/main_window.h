@@ -3,6 +3,8 @@
 #include <QMainWindow>
 #include <QScopedPointer>
 
+class DirectoryWidget;
+
 
 class MainWindow : public QMainWindow
 {
@@ -22,6 +24,7 @@ protected:
 
 private:
     void setActivePanel(ActivePanel panel);
+    [[nodiscard]] DirectoryWidget* activePanelWidget() const;
     void toggleActivePanel();
 
     struct Private;
