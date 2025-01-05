@@ -92,21 +92,22 @@ DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableWidget(parent)
 
     const auto onCellEntered = [this](const QTableWidgetItem* item) {
         const auto fileNameItem = this->item(item->row(), 0);
+        const auto d = fileNameItem->data(Qt::UserRole);
+        const auto fileInfo = fileNameItem->data(Qt::UserRole).value<QFileInfo>();
 
-        const QString fileName = fileNameItem->text() == "[..]" ? ".." : fileNameItem->text();
-
-        if (const auto path = QDir(m_directory).filePath(fileName); QFileInfo(path).isDir()) {
-            if (!QDir(path).isReadable()) {
-                QMessageBox::critical(this, "Error", "Can't open directory");
+        if (fileInfo.isDir()) {
+            if (!fileInfo.absoluteDir().isReadable()) {
+                QMessageBox::critical(this, "Error", "Can't open directory: permission denied");
                 return;
             }
 
-            setDirectory(path);
+            setDirectory(fileInfo.absoluteFilePath());
+        } else {
+            emit fileTriggered(fileInfo);
         }
     };
 
     connect(this, &QTableWidget::itemActivated, onCellEntered);
-    connect(this, &QTableWidget::itemDoubleClicked, onCellEntered);
 }
 
 void DirectoryWidget::setDirectory(const QString& directory)
@@ -123,7 +124,10 @@ void DirectoryWidget::setDirectory(const QString& directory)
     if (!dir.isRoot()) {
         insertRow(0);
 
-        setItem(0, 0, new QTableWidgetItem("[..]"));
+        const auto item = new QTableWidgetItem("[..]");
+        const auto parentDirPath = QDir::cleanPath(QFileInfo(dir.absolutePath()).dir().absolutePath());
+        item->setData(Qt::UserRole, QVariant::fromValue(QFileInfo(parentDirPath)));
+        setItem(0, 0, item);
     }
 
     for (const auto& entry : dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot))
@@ -133,6 +137,7 @@ void DirectoryWidget::setDirectory(const QString& directory)
         insertRow(iRow);
 
         auto fileEntry = new QTableWidgetItem(fileNameByEntry(entry));
+        fileEntry->setData(Qt::UserRole, QVariant::fromValue(entry));
 
         QFileIconProvider iconProvider;
         QIcon icon = iconProvider.icon(entry);

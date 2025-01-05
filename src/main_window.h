@@ -2,6 +2,7 @@
 
 #include <QMainWindow>
 #include <QScopedPointer>
+#include <QFileInfo>
 
 class DirectoryWidget;
 
@@ -26,6 +27,11 @@ private:
     void setActivePanel(ActivePanel panel);
     [[nodiscard]] DirectoryWidget* activePanelWidget() const;
     void toggleActivePanel();
+    void viewSelection();
+    void editSelection();
+    void open(const QFileInfo& fileInfo);
+
+    [[nodiscard]] QList<QFileInfo> selectedFiles() const;
 
     struct Private;
     QScopedPointer<Private> d;

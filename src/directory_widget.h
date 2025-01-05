@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QTableWidget>
+#include <QFileInfo>
 
 
 class DirectoryWidget final : public QTableWidget {
@@ -20,6 +21,7 @@ protected:
 
 signals:
     void focusIn();
+    void fileTriggered(const QFileInfo& fileInfo);
 
 private:
     QString m_directory;
