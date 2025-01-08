@@ -102,12 +102,8 @@ void MainWindow::viewSelection() {
     const auto command = "less " + files.join(' ');
 
     viewProcess->start(
-        "/usr/bin/osascript",
-        QStringList{
-            "-e", "tell application \"iTerm\" to activate",
-            "-e", "tell application \"System Events\" to keystroke \"t\" using command down",
-            "-e", QString("tell application \"iTerm\" to tell current session of current window to write text \"%1\"").arg(command),
-        }
+        "/usr/bin/qlmanage",
+        QStringList{"-p"} << files
     );
 }
 
