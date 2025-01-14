@@ -29,6 +29,7 @@ private:
     void toggleActivePanel();
     void viewSelection();
     void editSelection();
+    void removeSelected();
     void open(const QFileInfo& fileInfo);
 
     [[nodiscard]] QList<QFileInfo> selectedFiles() const;

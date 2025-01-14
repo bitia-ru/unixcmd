@@ -4,6 +4,7 @@
 
 #include <QApplication>
 #include <QDesktopServices>
+#include <QDir>
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QMessageBox>
@@ -60,6 +61,10 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             return true;
         case Qt::Key_F4:
             editSelection();
+            return true;
+        case Qt::Key_F8:
+            if (keyEvent->modifiers() & Qt::ShiftModifier)
+                removeSelected();
             return true;
         }
     }
@@ -131,6 +136,62 @@ void MainWindow::editSelection() {
             "-e", QString("tell application \"iTerm\" to tell current session of current window to write text \"%1\"").arg(command),
         }
     );
+}
+
+void MainWindow::removeSelected() {
+    QList<QFileInfo> selectedFiles = this->selectedFiles();
+
+    if (selectedFiles.isEmpty())
+        return;
+
+    const auto message = QString("Are you sure you want to delete %1?").arg(
+        selectedFiles.size() == 1
+            ? QString("file '%1'").arg(selectedFiles.first().fileName())
+            : QString("%1 files").arg(selectedFiles.count())
+    );
+
+    const auto response = QMessageBox::question(this, "Deleting files", message, QMessageBox::Yes | QMessageBox::No);
+
+    const auto removeFile = [this](const QFileInfo& fileInfo) -> bool {
+        QFile file(fileInfo.absoluteFilePath());
+        if (!file.remove()) {
+            const auto errorMsgBoxResponse = QMessageBox::critical(
+                this,
+                "Error deleting file",
+                QString("Failed to delete file '%1'").arg(fileInfo.fileName()),
+                QMessageBox::Ignore | QMessageBox::Abort
+            );
+
+            if (errorMsgBoxResponse == QMessageBox::Abort)
+                return false;
+        }
+
+        return true;
+    };
+
+    if (response == QMessageBox::Yes) {
+        for (const auto& fileInfo : selectedFiles) {
+            if (fileInfo.isFile() || fileInfo.isSymLink()) {
+                if (!removeFile(fileInfo))
+                    break;
+            } else if (fileInfo.isDir() || fileInfo.isBundle()) {
+                QDir dir(fileInfo.absoluteFilePath());
+                if (!dir.removeRecursively()) {
+                    const auto errorMsgBoxResponse = QMessageBox::critical(
+                        this,
+                        "Error deleting directory",
+                        QString("Failed to delete directory '%1'").arg(fileInfo.fileName()),
+                        QMessageBox::Ignore | QMessageBox::Abort
+                    );
+
+                    if (errorMsgBoxResponse == QMessageBox::Abort)
+                        break;
+                }
+            }
+        }
+
+        activePanelWidget()->reload();
+    }
 }
 
 void MainWindow::open(const QFileInfo& fileInfo) {
