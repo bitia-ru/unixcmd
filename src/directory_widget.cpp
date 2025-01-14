@@ -6,6 +6,7 @@
 #include <QHeaderView>
 #include <QKeyEvent>
 #include <QMessageBox>
+#include <QMetaProperty>
 
 
 namespace {
@@ -21,9 +22,10 @@ QString fileNameByEntry(const QFileInfo& entry)
     return entry.baseName();
 }
 
-QTableWidgetItem* fileSizeItemByEntry(const QFileInfo& entry)
+QStandardItem* fileSizeItemByEntry(const QFileInfo& entry)
 {
-    auto item = new QTableWidgetItem;
+    auto item = new QStandardItem;
+    item->setEditable(false);
 
     if (entry.isDir()) {
         item->setText("<DIR>");
@@ -43,7 +45,7 @@ QTableWidgetItem* fileSizeItemByEntry(const QFileInfo& entry)
     return item;
 }
 
-QTableWidgetItem* attrItemByEntry(const QFileInfo& entry)
+QStandardItem* attrItemByEntry(const QFileInfo& entry)
 {
     QString attr;
 
@@ -67,18 +69,120 @@ QTableWidgetItem* attrItemByEntry(const QFileInfo& entry)
     else
         attr += "-";
 
-    return new QTableWidgetItem(attr);
+    auto item = new QStandardItem(attr);
+    item->setEditable(false);
+
+    return item;
 }
 
 }
 
-DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableWidget(parent)
+QVariant DirectoryWidgetModel::data(const QModelIndex &index, const int role/* = Qt::DisplayRole*/) const
 {
-    setEditTriggers(NoEditTriggers);
+    if (index.column() == 0 && role == Qt::EditRole) {
+        const auto fileInfo = QStandardItemModel::data(index, Qt::UserRole).value<QFileInfo>();
+
+        return fileInfo.fileName();
+    }
+
+    return QStandardItemModel::data(index, role);
+}
+
+bool DirectoryWidgetModel::setData(const QModelIndex& index, const QVariant& value, int role)
+{
+    if (index.column() == 0 && role == Qt::EditRole) {
+        const auto newFileName = value.toString();
+        const auto originalFileInfo = QStandardItemModel::data(index, Qt::UserRole).value<QFileInfo>();
+        const QFileInfo newFileInfo(originalFileInfo.absoluteDir().filePath(newFileName));
+
+        if (originalFileInfo.dir().rename(originalFileInfo.fileName(), newFileName)) {
+            QStandardItemModel::setData(index, QVariant::fromValue(newFileInfo), Qt::UserRole);
+
+            if (newFileInfo.isDir())
+                QStandardItemModel::setData(index, newFileInfo.fileName(), Qt::DisplayRole);
+            else {
+                QStandardItemModel::setData(index, newFileInfo.baseName(), Qt::DisplayRole);
+                QStandardItemModel::setData(
+                    DirectoryWidgetModel::index(index.row(), 1),
+                    newFileInfo.suffix(),
+                    Qt::DisplayRole
+                );
+            }
+
+            return true;
+        }
+
+        QMessageBox::critical(nullptr, "Error", "Can't rename file");
+
+        return false;
+    }
+
+    return QStandardItemModel::setData(index, value, role);
+}
+
+bool DirectoryWidgetModel::setDirectory(const QDir& dir)
+{
+    removeRows(0, rowCount());
+
+    if (!dir.exists())
+        return false;
+
+    if (!dir.isRoot()) {
+        const auto item = new QStandardItem("[..]");
+        const auto parentDirPath = QDir::cleanPath(QFileInfo(dir.absolutePath()).dir().absolutePath());
+        item->setData(QVariant::fromValue(QFileInfo(parentDirPath)), Qt::UserRole);
+        item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+        item->setIcon(QFileIconProvider().icon(QAbstractFileIconProvider::Folder));
+
+        appendRow({item});
+    }
+
+    // setRowCount(dir.isRoot() ? entries.size() : entries.size() + 1);
+
+    for (const auto& entry : dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot))
+    {
+        QList<QStandardItem*> items;
+
+        const auto fileEntry = new QStandardItem(fileNameByEntry(entry));
+        fileEntry->setData(QVariant::fromValue(entry), Qt::UserRole);
+        fileEntry->setEditable(true);
+
+        if (QIcon icon = QFileIconProvider().icon(entry); !icon.isNull())
+            fileEntry->setIcon(icon);
+
+        items.append(fileEntry);
+
+        const auto extItem = new QStandardItem(entry.suffix());
+        extItem->setTextAlignment(Qt::AlignCenter);
+        extItem->setEditable(false);
+        items.append(extItem);
+
+        items.append(fileSizeItemByEntry(entry));
+
+        auto dateItem = new QStandardItem(entry.lastModified().toString("dd/MM/yy hh:mm"));
+        dateItem->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        dateItem->setEditable(false);
+        items.append(dateItem);
+
+        items.append(attrItemByEntry(entry));
+
+        appendRow(items);
+    }
+
+    return true;
+}
+
+DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableView(parent)
+{
+    QTableView::setModel(new DirectoryWidgetModel(0, 5, this));
+
+    setEditTriggers(SelectedClicked);
     setSelectionBehavior(SelectRows);
 
-    setColumnCount(5);
-    setHorizontalHeaderLabels({"Name", "Ext", "Size", "Date", "Attr"});
+    const auto headers = QStringList{"Name", "Ext", "Size", "Date", "Attr"};
+    for (int i = 0; i < headers.size(); ++i)
+        model()->setHeaderData(i, Qt::Horizontal, headers[i]);
+
     horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
     horizontalHeader()->resizeSection(1, 60);
     horizontalHeader()->resizeSection(2, 90);
@@ -90,12 +194,12 @@ DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableWidget(parent)
 
     setDirectory(QDir::currentPath());
 
-    const auto onCellEntered = [this](const QTableWidgetItem* item) {
-        const auto fileNameItem = this->item(item->row(), 0);
-        const auto d = fileNameItem->data(Qt::UserRole);
-        const auto fileInfo = fileNameItem->data(Qt::UserRole).value<QFileInfo>();
+    const auto onCellEntered = [this](const QModelIndex& index) {
+        const auto fileNameItem = model()->itemFromIndex(
+            model()->index(index.row(), 0)
+        );
 
-        if (fileInfo.isDir()) {
+        if (const auto fileInfo = fileNameItem->data(Qt::UserRole).value<QFileInfo>(); fileInfo.isDir()) {
             if (!fileInfo.absoluteDir().isReadable()) {
                 QMessageBox::critical(this, "Error", "Can't open directory: permission denied");
                 return;
@@ -107,60 +211,22 @@ DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableWidget(parent)
         }
     };
 
-    connect(this, &QTableWidget::itemActivated, onCellEntered);
+    connect(this, &QTableView::activated, onCellEntered);
 }
 
 void DirectoryWidget::setDirectory(const QString& directory)
 {
-    setRowCount(0);
-
     const QDir dir(QDir::cleanPath(directory));
 
     if (!dir.isReadable())
         return;
 
+    if (!model()->setDirectory(dir))
+        return;
+
     m_directory = dir.absolutePath();
 
-    if (!dir.isRoot()) {
-        insertRow(0);
-
-        const auto item = new QTableWidgetItem("[..]");
-        const auto parentDirPath = QDir::cleanPath(QFileInfo(dir.absolutePath()).dir().absolutePath());
-        item->setData(Qt::UserRole, QVariant::fromValue(QFileInfo(parentDirPath)));
-        setItem(0, 0, item);
-    }
-
-    for (const auto& entry : dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot))
-    {
-        const auto iRow = rowCount();
-
-        insertRow(iRow);
-
-        auto fileEntry = new QTableWidgetItem(fileNameByEntry(entry));
-        fileEntry->setData(Qt::UserRole, QVariant::fromValue(entry));
-
-        QFileIconProvider iconProvider;
-        QIcon icon = iconProvider.icon(entry);
-
-        if (!icon.isNull())
-            fileEntry->setIcon(icon);
-
-        setItem(iRow, 0, fileEntry);
-
-        auto extItem = new QTableWidgetItem(entry.suffix());
-        extItem->setTextAlignment(Qt::AlignCenter);
-        setItem(iRow, 1, extItem);
-
-        setItem(iRow, 2, fileSizeItemByEntry(entry));
-
-        auto dateItem = new QTableWidgetItem(entry.lastModified().toString("dd/MM/yy hh:mm"));
-        dateItem->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-        setItem(iRow, 3, dateItem);
-
-        setItem(iRow, 4, attrItemByEntry(entry));
-    }
-
-    if (rowCount() > 0)
+    if (model()->rowCount() > 0)
         selectRow(0);
 }
 
@@ -172,16 +238,21 @@ void DirectoryWidget::reload()
 void DirectoryWidget::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
-        emit itemActivated(currentItem());
+        emit activated(currentIndex());
         return;
     }
 
-    QTableWidget::keyPressEvent(event);
+    QTableView::keyPressEvent(event);
 }
 
 void DirectoryWidget::focusInEvent(QFocusEvent* event)
 {
-    QTableWidget::focusInEvent(event);
+    QTableView::focusInEvent(event);
 
     emit focusIn();
+}
+
+DirectoryWidgetModel* DirectoryWidget::model() const
+{
+    return qobject_cast<DirectoryWidgetModel*>(QTableView::model());
 }
