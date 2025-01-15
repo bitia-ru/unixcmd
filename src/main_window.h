@@ -29,6 +29,7 @@ private:
     void toggleActivePanel();
     void viewSelection();
     void editSelection();
+    void copySelection();
     void removeSelected();
     void open(const QFileInfo& fileInfo);
 

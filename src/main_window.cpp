@@ -1,4 +1,6 @@
 #include "main_window.h"
+
+#include "copy_dialog.h"
 #include "directory_widget.h"
 #include "double_panel_splitter.h"
 
@@ -61,6 +63,9 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             return true;
         case Qt::Key_F4:
             editSelection();
+            return true;
+        case Qt::Key_F5:
+            copySelection();
             return true;
         case Qt::Key_F8:
             if (keyEvent->modifiers() & Qt::ShiftModifier)
@@ -136,6 +141,15 @@ void MainWindow::editSelection() {
             "-e", QString("tell application \"iTerm\" to tell current session of current window to write text \"%1\"").arg(command),
         }
     );
+}
+
+void MainWindow::copySelection() {
+    QList<QFileInfo> selectedFiles = this->selectedFiles();
+
+    if (selectedFiles.isEmpty())
+        return;
+
+    auto copyDialog = new CopyDialog(this);
 }
 
 void MainWindow::removeSelected() {

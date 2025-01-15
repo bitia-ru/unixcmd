@@ -3,22 +3,24 @@ if(ANDROID)
 else()
   qt_add_executable(
     ${PROJECT_NAME}
-      main.cpp
-      main_window.cpp
-      main_window.h
+      copy_dialog.cpp
+      copy_dialog.h
       directory_widget.cpp
       directory_widget.h
       double_panel_splitter.cpp
       double_panel_splitter.h
+      main.cpp
+      main_window.cpp
+      main_window.h
     )
 endif()
 
 qt_add_qml_module(
   ${PROJECT_NAME}
-    URI app.unixcmd
+    URI unixcmd
     VERSION 1.0
     QML_FILES
-      qml/main.qml
+  qml/copy_dialog.qml
 )
 
 target_link_libraries(
