@@ -6,16 +6,22 @@ Window {
     title: "Copying files"
     flags: Qt.Dialog | Qt.Modal | Qt.WindowStaysOnTopHint
     minimumWidth: 500
+    height: dialog.height
 
     Dialog {
+        id: dialog
+
         visible: true
+
         width: parent.width
-        height: parent.height
+        height: layout.implicitHeight + (footer ? footer.height : 0)
+
         standardButtons: Dialog.Ok | Dialog.Cancel
 
         ColumnLayout {
+            id: layout
+
             anchors.fill: parent
-            spacing: 0
 
             Label {
                 text: qsTr("Copy file to:")
@@ -24,9 +30,12 @@ Window {
 
             TextField {
                 id: destination
+
                 Layout.fillWidth: true
                 placeholderText: qsTr("Destination path")
             }
+
+            Item { Layout.fillHeight: true }
         }
     }
 }
