@@ -11,6 +11,8 @@ Window {
     height: dialog.height
 
     property string destination
+    signal accepted(destination: string)
+    signal canceled()
 
     Dialog {
         id: dialog
@@ -41,6 +43,14 @@ Window {
             }
 
             Item { Layout.fillHeight: true }
+        }
+
+        onAccepted: {
+            copyDialog.accepted(destination.text)
+        }
+
+        onRejected: {
+            copyDialog.canceled()
         }
     }
 }

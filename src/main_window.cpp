@@ -154,6 +154,18 @@ void MainWindow::copySelection() {
         return;
 
     auto copyDialog = new CopyDialog(this, destinationPanelWidget()->directory());
+
+    connect(copyDialog, &CopyDialog::accepted, [this, copyDialog](const QDir& destination) {
+        qDebug() << "Copying to" << destination;
+
+        copyDialog->deleteLater();
+    });
+
+    connect(copyDialog, &CopyDialog::canceled, [this, copyDialog] {
+        qDebug() << "Copying canceled";
+
+        copyDialog->deleteLater();
+    });
 }
 
 void MainWindow::removeSelected() {
