@@ -26,6 +26,7 @@ protected:
 private:
     void setActivePanel(ActivePanel panel);
     [[nodiscard]] DirectoryWidget* activePanelWidget() const;
+    [[nodiscard]] DirectoryWidget* destinationPanelWidget() const;
     void toggleActivePanel();
     void viewSelection();
     void editSelection();

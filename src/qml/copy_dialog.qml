@@ -3,10 +3,14 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Window {
+    id: copyDialog
+
     title: "Copying files"
     flags: Qt.Dialog | Qt.Modal | Qt.WindowStaysOnTopHint
     minimumWidth: 500
     height: dialog.height
+
+    property string destination
 
     Dialog {
         id: dialog
@@ -33,6 +37,7 @@ Window {
 
                 Layout.fillWidth: true
                 placeholderText: qsTr("Destination path")
+                text: copyDialog.destination
             }
 
             Item { Layout.fillHeight: true }

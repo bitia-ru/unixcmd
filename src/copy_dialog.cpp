@@ -17,9 +17,9 @@ struct CopyDialog::Private
     }
 };
 
-CopyDialog::CopyDialog(QObject* parent) : d(new Private), QObject(parent)
+CopyDialog::CopyDialog(QObject* parent, const QDir& destination) : d(new Private), QObject(parent)
 {
-    connect(&d->component, &QQmlComponent::statusChanged, [this](const QQmlComponent::Status status)
+    connect(&d->component, &QQmlComponent::statusChanged, [this, destination](const QQmlComponent::Status status)
     {
         switch (status) {
         case QQmlComponent::Error:
@@ -27,17 +27,13 @@ CopyDialog::CopyDialog(QObject* parent) : d(new Private), QObject(parent)
                 qDebug() << "QML Error:" << error.toString();
             }
         case QQmlComponent::Ready:
-            qDebug() << "CopyDialog::Ready";
-            QObject* obj = d->component.create();
+            QObject* obj = d->component.createWithInitialProperties(
+                QVariantMap{
+                    {"destination", destination.absolutePath()},
+                });
 
-            if (!obj) {
-                qDebug() << "FOOOOOO";
-            } else {
-                QQuickWindow* window = qobject_cast<QQuickWindow*>(obj);
-
-                if (!window) {
-                    qDebug() << "FOOOOOO";
-                } else {
+            if (obj) {
+                if (auto* window = qobject_cast<QQuickWindow*>(obj); window) {
                     window->show();
                 }
             }

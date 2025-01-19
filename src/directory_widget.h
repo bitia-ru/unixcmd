@@ -26,6 +26,7 @@ public:
     explicit DirectoryWidget(QWidget* parent = nullptr);
 
     void setDirectory(const QString& directory);
+    [[nodiscard]] QDir directory() const;
 
 public slots:
     void reload();

@@ -91,6 +91,10 @@ DirectoryWidget* MainWindow::activePanelWidget() const {
     return m_activePanel == LEFT ? d->leftPanel : d->rightPanel;
 }
 
+DirectoryWidget* MainWindow::destinationPanelWidget() const {
+    return m_activePanel == LEFT ? d->rightPanel : d->leftPanel;
+}
+
 void MainWindow::toggleActivePanel() {
     setActivePanel(m_activePanel == LEFT ? RIGHT : LEFT);
 }
@@ -149,7 +153,7 @@ void MainWindow::copySelection() {
     if (selectedFiles.isEmpty())
         return;
 
-    auto copyDialog = new CopyDialog(this);
+    auto copyDialog = new CopyDialog(this, destinationPanelWidget()->directory());
 }
 
 void MainWindow::removeSelected() {

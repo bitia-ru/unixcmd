@@ -230,6 +230,11 @@ void DirectoryWidget::setDirectory(const QString& directory)
         selectRow(0);
 }
 
+QDir DirectoryWidget::directory() const
+{
+    return m_directory;
+}
+
 void DirectoryWidget::reload()
 {
     setDirectory(m_directory);
