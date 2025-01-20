@@ -77,6 +77,12 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
     return QMainWindow::eventFilter(obj, event);
 }
 
+void MainWindow::closeEvent(QCloseEvent* event) {
+    emit closed();
+
+    event->accept();
+}
+
 void MainWindow::setActivePanel(ActivePanel panel) {
     m_activePanel = panel;
 

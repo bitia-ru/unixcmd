@@ -7,8 +7,10 @@
 class DirectoryWidget;
 
 
-class MainWindow : public QMainWindow
+class MainWindow final : public QMainWindow
 {
+    Q_OBJECT
+
 public:
     enum ActivePanel
     {
@@ -22,6 +24,10 @@ public:
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
+
+signals:
+    void closed();
 
 private:
     void setActivePanel(ActivePanel panel);

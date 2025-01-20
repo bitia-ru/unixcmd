@@ -8,6 +8,8 @@ int main(int argc, char* argv[]) {
 
     MainWindow window;
 
+    QObject::connect(&window, &MainWindow::closed, &app, &QApplication::quit);
+
     window.show();
 
     return QApplication::exec();
