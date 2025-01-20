@@ -5,15 +5,18 @@ import QtQuick.Layouts
 Window {
     id: copyDialog
 
-    title: "Copying files"
-    flags: Qt.Dialog | Qt.Modal | Qt.WindowStaysOnTopHint
-    minimumWidth: 500
-    height: dialog.height
-
     property string destination: ""
 
     signal accepted(destination: string)
     signal canceled()
+
+    title: "Copying files"
+    flags: Qt.Dialog | Qt.Modal | Qt.WindowStaysOnTopHint | Qt.MSWindowsFixedSizeDialogHint
+
+    minimumWidth: 500
+    minimumHeight: dialog.height
+    maximumHeight: minimumHeight
+    height: minimumHeight
 
     Dialog {
         id: dialog
