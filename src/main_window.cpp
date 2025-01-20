@@ -11,8 +11,10 @@
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QProcess>
+#include <QQuickWindow>
 #include <QSplitter>
 #include <QTableWidgetItem>
+#include <QtConcurrent/QtConcurrent>
 
 
 struct MainWindow::Private
@@ -161,15 +163,58 @@ void MainWindow::copySelection() {
 
     auto copyDialog = new CopyDialog(this, destinationPanelWidget()->directory());
 
-    connect(copyDialog, &CopyDialog::accepted, [this, copyDialog](const QDir& destination) {
-        qDebug() << "Copying to" << destination;
+    connect(copyDialog, &CopyDialog::accepted, [this, selectedFiles](const QDir& destination) {
+        const auto _ = QtConcurrent::run([this, destination, selectedFiles]() -> void {
+            const std::function<void(const QFileInfo&, const QDir&)> copyFileRecursive =
+                [this, &copyFileRecursive](const QFileInfo& file, const QDir& destination) {
+                    if (file.isFile() || file.isSymLink()) {
+                        const auto destinationFilePath = destination.filePath(file.fileName());
 
-        copyDialog->deleteLater();
+                        qDebug() << "Copying file: " << file.absoluteFilePath() << " to " << destinationFilePath;
+                        if (!QFile::copy(file.absoluteFilePath(), destinationFilePath)) {
+                            const auto selectedButton = QMessageBox::question(
+                                this,
+                                "Error copying file",
+                                QString("Failed to copy file '%1'").arg(file.fileName()),
+                                QMessageBox::Ignore | QMessageBox::Abort,
+                                QMessageBox::Abort
+                            );
+
+                            if (selectedButton == QMessageBox::Abort)
+                                return;
+                        }
+                    } else if (file.isDir() || file.isBundle()) {
+                        const auto& dirFiles = QDir(file.absoluteFilePath())
+                            .entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
+                        const auto& subDir = QDir(destination.filePath(file.fileName()));
+                        if (!subDir.exists()) {
+                            qDebug() << "Creating directory: " << subDir.absolutePath();
+
+                            if (!subDir.mkpath(".")) {
+                                qDebug() << "Failed to create directory: " << subDir.absolutePath();
+                                return;
+                            }
+                        }
+                        for (const auto& subFile: dirFiles)
+                            copyFileRecursive(subFile, subDir);
+                    } else {
+                        qDebug() << "Unsupported file type: " << file.absoluteFilePath() << ", ignoring";
+                    }
+                };
+
+                for (const auto& file: selectedFiles)
+                    copyFileRecursive(file, destination);
+
+                if (destination == destinationPanelWidget()->directory())
+                    destinationPanelWidget()->reload();
+
+                if (activePanelWidget()->directory() == destinationPanelWidget()->directory())
+                    activePanelWidget()->reload();
+            }
+        );
     });
 
-    connect(copyDialog, &CopyDialog::canceled, [this, copyDialog] {
-        qDebug() << "Copying canceled";
-
+    connect(copyDialog, &CopyDialog::closed, [this, copyDialog] {
         copyDialog->deleteLater();
     });
 }
@@ -186,7 +231,12 @@ void MainWindow::removeSelected() {
             : QString("%1 files").arg(selectedFiles.count())
     );
 
-    const auto response = QMessageBox::question(this, "Deleting files", message, QMessageBox::Yes | QMessageBox::No);
+    const auto response = QMessageBox::question(
+        this,
+        "Deleting files",
+        message,
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::Yes);
 
     const auto removeFile = [this](const QFileInfo& fileInfo) -> bool {
         QFile file(fileInfo.absoluteFilePath());
@@ -227,6 +277,8 @@ void MainWindow::removeSelected() {
         }
 
         activePanelWidget()->reload();
+        if (activePanelWidget()->directory() == destinationPanelWidget()->directory())
+            destinationPanelWidget()->reload();
     }
 }
 

@@ -16,7 +16,7 @@ public:
 
 signals:
     void accepted(const QDir& destination);
-    void canceled();
+    void closed();
 
 private slots:
     void onAccepted(const QString& destination);

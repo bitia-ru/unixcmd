@@ -1,4 +1,4 @@
-#include "copy_dialog.h"
+#include "processing_dialog.h"
 
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -6,7 +6,7 @@
 #include <QQuickWindow>
 
 
-struct CopyDialog::Private
+struct ProcessingDialog::Private
 {
     QQmlEngine engine;
     QQmlComponent component;
@@ -18,9 +18,9 @@ struct CopyDialog::Private
     }
 };
 
-CopyDialog::CopyDialog(QObject* parent, const QDir& destination) : d(new Private), QObject(parent)
+ProcessingDialog::ProcessingDialog(QObject* parent, const QString& title) : d(new Private), QObject(parent)
 {
-    connect(&d->component, &QQmlComponent::statusChanged, [this, destination](const QQmlComponent::Status status)
+    connect(&d->component, &QQmlComponent::statusChanged, [this, title](const QQmlComponent::Status status)
     {
         switch (status) {
         case QQmlComponent::Error:
@@ -30,13 +30,12 @@ CopyDialog::CopyDialog(QObject* parent, const QDir& destination) : d(new Private
         case QQmlComponent::Ready:
             QObject* obj = d->component.createWithInitialProperties(
                 QVariantMap{
-                    {"destination", destination.absolutePath()},
+                    {"title", title},
                 });
 
             if (obj) {
                 if (auto* window = qobject_cast<QQuickWindow*>(obj); window) {
-                    connect(window, SIGNAL(accepted(QString)), this, SLOT(onAccepted(QString)));
-                    connect(window, SIGNAL(canceled()), this, SLOT(onCanceled()));
+                    connect(window, SIGNAL(aborted()), this, SLOT(onAborted()));
 
                     window->show();
 
@@ -46,28 +45,20 @@ CopyDialog::CopyDialog(QObject* parent, const QDir& destination) : d(new Private
         }
     });
 
-    d->component.loadUrl(QUrl("qrc:/unixcmd/qml/copy_dialog.qml"));
+    d->component.loadUrl(QUrl("qrc:/unixcmd/qml/processing_dialog.qml"));
 }
 
-CopyDialog::~CopyDialog() = default;
+ProcessingDialog::~ProcessingDialog() = default;
 
-void CopyDialog::close() const
+void ProcessingDialog::abort() const
 {
     if (d->window)
         d->window->close();
 }
 
-void CopyDialog::onAccepted(const QString& destination)
+void ProcessingDialog::onAborted()
 {
-    close();
+    abort();
 
-    emit accepted(QDir(destination));
-    emit closed();
-}
-
-void CopyDialog::onCanceled()
-{
-    close();
-
-    emit closed();
+    emit aborted();
 }
