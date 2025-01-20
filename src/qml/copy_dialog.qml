@@ -10,7 +10,8 @@ Window {
     minimumWidth: 500
     height: dialog.height
 
-    property string destination
+    property string destination: ""
+
     signal accepted(destination: string)
     signal canceled()
 
@@ -36,6 +37,8 @@ Window {
 
             TextField {
                 id: destination
+
+                focus: true
 
                 Layout.fillWidth: true
                 placeholderText: qsTr("Destination path")
