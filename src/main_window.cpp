@@ -113,7 +113,9 @@ void MainWindow::viewSelection() {
     if (selectedFiles.isEmpty())
         return;
 
-    auto viewProcess = new QProcess(this);
+    const auto viewProcess = new QProcess(this);
+
+    QString command;
 
     QStringList files;
 
@@ -121,12 +123,36 @@ void MainWindow::viewSelection() {
         files << item.absoluteFilePath();
     }
 
-    const auto command = "less " + files.join(' ');
+    if (QSysInfo::productType() == "macos") {
+        viewProcess->setProgram("/usr/sbin/qlmanage");
+        viewProcess->setArguments(QStringList{"-p",} + files);
+    } else if (QSysInfo::productType() == "ubuntu") {
+        viewProcess->setProgram("/usr/bin/xdg-open");
+        viewProcess->setArguments(files);
+    }
 
-    viewProcess->start(
-        "/usr/bin/qlmanage",
-        QStringList{"-p"} << files
+    connect(
+        viewProcess,
+        QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+        [viewProcess](int, const QProcess::ExitStatus exitStatus) {
+            if (exitStatus == QProcess::CrashExit) {
+                QMessageBox::critical(nullptr, "Error", "Failed to view file(s)");
+            }
+
+            viewProcess->deleteLater();
+        }
     );
+
+    connect(
+        viewProcess,
+        &QProcess::errorOccurred,
+        [viewProcess](QProcess::ProcessError error) {
+            QMessageBox::critical(nullptr, "Error", QString("Failed to view file(s): %1").arg(viewProcess->errorString()));
+            viewProcess->deleteLater();
+        }
+    );
+
+    viewProcess->start();
 }
 
 void MainWindow::editSelection() {
