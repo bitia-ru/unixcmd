@@ -5,12 +5,10 @@ import QtQuick.Layouts
 Window {
     id: processingDialog
 
-    property string title: ""
     property string status: ""
 
     signal aborted()
 
-    title: status
     flags: Qt.Dialog | Qt.Modal | Qt.WindowStaysOnTopHint | Qt.MSWindowsFixedSizeDialogHint
 
     minimumWidth: 500

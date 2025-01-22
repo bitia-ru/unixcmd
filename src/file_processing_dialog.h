@@ -4,15 +4,19 @@
 #include <QObject>
 #include <QScopedPointer>
 
-class ProcessingDialog final : public QObject
+class FileProcessingDialog final : public QObject
 {
     Q_OBJECT
 
 public:
-    ProcessingDialog(QObject* parent = nullptr, const QString& title = QString());
-    virtual ~ProcessingDialog();
+    FileProcessingDialog(QObject* parent = nullptr, const QString& title = QString());
+    virtual ~FileProcessingDialog();
 
     void abort() const;
+
+    void show();
+
+    void setStatus(const QString& status);
 
 signals:
     void aborted();

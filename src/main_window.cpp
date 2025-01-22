@@ -3,6 +3,7 @@
 #include "copy_dialog.h"
 #include "directory_widget.h"
 #include "double_panel_splitter.h"
+#include "file_processing_dialog.h"
 
 #include <QApplication>
 #include <QDesktopServices>
@@ -188,15 +189,42 @@ void MainWindow::copySelection() {
         return;
 
     auto copyDialog = new CopyDialog(this, destinationPanelWidget()->directory());
+    auto fileProcessingDialog = new FileProcessingDialog(this, "Copying files");
 
-    connect(copyDialog, &CopyDialog::accepted, [this, selectedFiles](const QDir& destination) {
-        const auto _ = QtConcurrent::run([this, destination, selectedFiles]() -> void {
-            const std::function<void(const QFileInfo&, const QDir&)> copyFileRecursive =
-                [this, &copyFileRecursive](const QFileInfo& file, const QDir& destination) {
+    auto aborted = new std::atomic(false);
+    auto watcher = new QFutureWatcher<void>(this);
+
+    connect(fileProcessingDialog, &FileProcessingDialog::aborted, [aborted] { *aborted = true; });
+
+    connect(watcher, &QFutureWatcher<void>::finished, [fileProcessingDialog, watcher] {
+        fileProcessingDialog->abort();
+        fileProcessingDialog->deleteLater();
+        watcher->deleteLater();
+    });
+
+    connect(copyDialog, &CopyDialog::closed, [this, copyDialog] {
+        copyDialog->deleteLater();
+    });
+
+    connect(copyDialog, &CopyDialog::rejected, [this, fileProcessingDialog, watcher] {
+        fileProcessingDialog->abort();
+        fileProcessingDialog->deleteLater();
+        watcher->waitForFinished();
+    });
+
+    connect(copyDialog, &CopyDialog::accepted, [this, selectedFiles, fileProcessingDialog, aborted, watcher](const QDir& destination) {
+        const auto future = QtConcurrent::run([this, destination, selectedFiles, fileProcessingDialog, aborted]() -> void {
+            QMetaObject::invokeMethod(fileProcessingDialog, [fileProcessingDialog] { fileProcessingDialog->show(); });
+
+            const std::function<bool(const QFileInfo&, const QDir&)> copyFileRecursive =
+                [this, &copyFileRecursive, fileProcessingDialog, aborted](const QFileInfo& file, const QDir& destination) -> bool {
                     if (file.isFile() || file.isSymLink()) {
                         const auto destinationFilePath = destination.filePath(file.fileName());
 
-                        qDebug() << "Copying file: " << file.absoluteFilePath() << " to " << destinationFilePath;
+                        QMetaObject::invokeMethod(fileProcessingDialog, [fileProcessingDialog, file] {
+                            fileProcessingDialog->setStatus(QString("Copying file '%1'").arg(file.fileName()));
+                        });
+
                         if (!QFile::copy(file.absoluteFilePath(), destinationFilePath)) {
                             const auto selectedButton = QMessageBox::question(
                                 this,
@@ -207,29 +235,34 @@ void MainWindow::copySelection() {
                             );
 
                             if (selectedButton == QMessageBox::Abort)
-                                return;
+                                return true;
                         }
                     } else if (file.isDir() || file.isBundle()) {
                         const auto& dirFiles = QDir(file.absoluteFilePath())
                             .entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
                         const auto& subDir = QDir(destination.filePath(file.fileName()));
                         if (!subDir.exists()) {
-                            qDebug() << "Creating directory: " << subDir.absolutePath();
-
                             if (!subDir.mkpath(".")) {
                                 qDebug() << "Failed to create directory: " << subDir.absolutePath();
-                                return;
+                                return true;
                             }
                         }
                         for (const auto& subFile: dirFiles)
-                            copyFileRecursive(subFile, subDir);
+                            if (copyFileRecursive(subFile, subDir))
+                                return true;
                     } else {
                         qDebug() << "Unsupported file type: " << file.absoluteFilePath() << ", ignoring";
                     }
+
+                    if (*aborted)
+                        return true;
+
+                    return false;
                 };
 
                 for (const auto& file: selectedFiles)
-                    copyFileRecursive(file, destination);
+                    if (copyFileRecursive(file, destination))
+                        break;
 
                 if (destination == destinationPanelWidget()->directory())
                     destinationPanelWidget()->reload();
@@ -238,10 +271,8 @@ void MainWindow::copySelection() {
                     activePanelWidget()->reload();
             }
         );
-    });
 
-    connect(copyDialog, &CopyDialog::closed, [this, copyDialog] {
-        copyDialog->deleteLater();
+        watcher->setFuture(future);
     });
 }
 

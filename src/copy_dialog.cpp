@@ -69,5 +69,6 @@ void CopyDialog::onCanceled()
 {
     close();
 
+    emit rejected();
     emit closed();
 }

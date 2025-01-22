@@ -9,6 +9,8 @@ else()
       directory_widget.h
       double_panel_splitter.cpp
       double_panel_splitter.h
+      file_processing_dialog.cpp
+      file_processing_dialog.h
       main.cpp
       main_window.cpp
       main_window.h
@@ -21,6 +23,7 @@ qt_add_qml_module(
     VERSION 1.0
     QML_FILES
   qml/copy_dialog.qml
+  qml/file_processing_dialog.qml
 )
 
 target_link_libraries(

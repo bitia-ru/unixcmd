@@ -16,6 +16,7 @@ public:
 
 signals:
     void accepted(const QDir& destination);
+    void rejected();
     void closed();
 
 private slots:

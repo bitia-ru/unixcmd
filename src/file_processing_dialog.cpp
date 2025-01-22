@@ -1,4 +1,4 @@
-#include "processing_dialog.h"
+#include "file_processing_dialog.h"
 
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -6,7 +6,7 @@
 #include <QQuickWindow>
 
 
-struct ProcessingDialog::Private
+struct FileProcessingDialog::Private
 {
     QQmlEngine engine;
     QQmlComponent component;
@@ -18,7 +18,7 @@ struct ProcessingDialog::Private
     }
 };
 
-ProcessingDialog::ProcessingDialog(QObject* parent, const QString& title) : d(new Private), QObject(parent)
+FileProcessingDialog::FileProcessingDialog(QObject* parent, const QString& title) : d(new Private), QObject(parent)
 {
     connect(&d->component, &QQmlComponent::statusChanged, [this, title](const QQmlComponent::Status status)
     {
@@ -37,26 +37,36 @@ ProcessingDialog::ProcessingDialog(QObject* parent, const QString& title) : d(ne
                 if (auto* window = qobject_cast<QQuickWindow*>(obj); window) {
                     connect(window, SIGNAL(aborted()), this, SLOT(onAborted()));
 
-                    window->show();
-
                     d->window = window;
                 }
             }
         }
     });
 
-    d->component.loadUrl(QUrl("qrc:/unixcmd/qml/processing_dialog.qml"));
+    d->component.loadUrl(QUrl("qrc:/unixcmd/qml/file_processing_dialog.qml"));
 }
 
-ProcessingDialog::~ProcessingDialog() = default;
+FileProcessingDialog::~FileProcessingDialog() = default;
 
-void ProcessingDialog::abort() const
+void FileProcessingDialog::abort() const
 {
     if (d->window)
         d->window->close();
 }
 
-void ProcessingDialog::onAborted()
+void FileProcessingDialog::show()
+{
+    if (d->window)
+        d->window->show();
+}
+
+void FileProcessingDialog::setStatus(const QString& status)
+{
+    if (d->window)
+        d->window->setProperty("status", status);
+}
+
+void FileProcessingDialog::onAborted()
 {
     abort();
 
