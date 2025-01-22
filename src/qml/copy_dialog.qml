@@ -46,17 +46,21 @@ Window {
                 Layout.fillWidth: true
                 placeholderText: qsTr("Destination path")
                 text: copyDialog.destination
+
+                onAccepted: dialog.accept()
             }
 
             Item { Layout.fillHeight: true }
         }
 
-        onAccepted: {
-            copyDialog.accepted(destination.text)
-        }
+        onAccepted: accept()
 
         onRejected: {
             copyDialog.canceled()
+        }
+
+        function accept() {
+            copyDialog.accepted(destination.text)
         }
     }
 }
