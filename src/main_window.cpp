@@ -22,6 +22,7 @@ struct MainWindow::Private
 {
     DirectoryWidget* leftPanel = nullptr;
     DirectoryWidget* rightPanel = nullptr;
+    bool showHiddenFiles = false;
 };
 
 MainWindow::MainWindow()
@@ -74,6 +75,11 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             if (keyEvent->modifiers() & Qt::ShiftModifier)
                 removeSelected();
             return true;
+        case Qt::Key_Period:
+            if (keyEvent->modifiers() & Qt::AltModifier) {
+                toggleShowHiddenFiles();
+                return true;
+            }
         }
     }
 
@@ -342,6 +348,13 @@ void MainWindow::removeSelected() {
 void MainWindow::open(const QFileInfo& fileInfo) {
     const auto filePath = fileInfo.absoluteFilePath();
     QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+}
+
+void MainWindow::toggleShowHiddenFiles() {
+    d->showHiddenFiles = !d->showHiddenFiles;
+
+    d->leftPanel->setShowHiddenFiles(d->showHiddenFiles);
+    d->rightPanel->setShowHiddenFiles(d->showHiddenFiles);
 }
 
 QList<QFileInfo> MainWindow::selectedFiles() const {

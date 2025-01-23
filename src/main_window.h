@@ -39,6 +39,7 @@ private:
     void copySelection();
     void removeSelected();
     void open(const QFileInfo& fileInfo);
+    void toggleShowHiddenFiles();
 
     [[nodiscard]] QList<QFileInfo> selectedFiles() const;
 

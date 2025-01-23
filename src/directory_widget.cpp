@@ -124,7 +124,7 @@ bool DirectoryWidgetModel::setData(const QModelIndex& index, const QVariant& val
     return QStandardItemModel::setData(index, value, role);
 }
 
-bool DirectoryWidgetModel::setDirectory(const QDir& dir)
+bool DirectoryWidgetModel::setDirectory(const QDir& dir, bool showHiddenFiles)
 {
     removeRows(0, rowCount());
 
@@ -141,9 +141,12 @@ bool DirectoryWidgetModel::setDirectory(const QDir& dir)
         appendRow({item});
     }
 
-    // setRowCount(dir.isRoot() ? entries.size() : entries.size() + 1);
+    QDir::Filters filters = QDir::AllEntries | QDir::NoDotAndDotDot | QDir::System;
 
-    for (const auto& entry : dir.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot))
+    if (showHiddenFiles)
+        filters |= QDir::Hidden;
+
+    for (const auto& entry : dir.entryInfoList(filters))
     {
         QList<QStandardItem*> items;
 
@@ -179,6 +182,7 @@ bool DirectoryWidgetModel::setDirectory(const QDir& dir)
 struct DirectoryWidget::Private
 {
     QDir directory;
+    bool showHiddenFiles = false;
 
     QString quickSearch;
     QLabel* quickSearchLabel = nullptr;
@@ -236,7 +240,7 @@ void DirectoryWidget::setDirectory(const QDir& directory)
     if (!dir.isReadable())
         return;
 
-    if (!model()->setDirectory(dir))
+    if (!model()->setDirectory(dir, d->showHiddenFiles))
         return;
 
     d->directory = dir;
@@ -285,6 +289,13 @@ void DirectoryWidget::setQuickSearch(const QString& text)
     }
 
     d->quickSearchIndex = -1;
+}
+
+void DirectoryWidget::setShowHiddenFiles(bool showHiddenFiles)
+{
+    d->showHiddenFiles = showHiddenFiles;
+
+    reload();
 }
 
 void DirectoryWidget::reload()

@@ -16,7 +16,7 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     bool setData(const QModelIndex& index, const QVariant& value, int role) override;
 
-    bool setDirectory(const QDir& dir);
+    bool setDirectory(const QDir& dir, bool showHiddenFiles);
 };
 
 class DirectoryWidget final : public QTableView {
@@ -30,6 +30,8 @@ public:
     [[nodiscard]] QDir directory() const;
 
     void setQuickSearch(const QString& text);
+
+    void setShowHiddenFiles(bool showHiddenFiles);
 
 public slots:
     void reload();
