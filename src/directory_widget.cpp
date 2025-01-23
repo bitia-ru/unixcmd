@@ -5,8 +5,12 @@
 #include <QFileInfo>
 #include <QHeaderView>
 #include <QKeyEvent>
+#include <QLabel>
 #include <QMessageBox>
 #include <QMetaProperty>
+#include <QStandardItem>
+#include <QStandardItemModel>
+#include <QTableView>
 
 
 namespace {
@@ -172,7 +176,15 @@ bool DirectoryWidgetModel::setDirectory(const QDir& dir)
     return true;
 }
 
-DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableView(parent)
+struct DirectoryWidget::Private
+{
+    QDir directory;
+
+    QString quickSearch;
+    QLabel* quickSearchLabel = nullptr;
+};
+
+DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableView(parent), d(new Private)
 {
     QTableView::setModel(new DirectoryWidgetModel(0, 5, this));
 
@@ -214,9 +226,11 @@ DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableView(parent)
     connect(this, &QTableView::activated, onCellEntered);
 }
 
-void DirectoryWidget::setDirectory(const QString& directory)
+DirectoryWidget::~DirectoryWidget() = default;
+
+void DirectoryWidget::setDirectory(const QDir& directory)
 {
-    const QDir dir(QDir::cleanPath(directory));
+    const QDir dir(QDir::cleanPath(directory.absolutePath()));
 
     if (!dir.isReadable())
         return;
@@ -224,7 +238,7 @@ void DirectoryWidget::setDirectory(const QString& directory)
     if (!model()->setDirectory(dir))
         return;
 
-    m_directory = dir.absolutePath();
+    d->directory = dir;
 
     if (model()->rowCount() > 0)
         selectRow(0);
@@ -232,18 +246,71 @@ void DirectoryWidget::setDirectory(const QString& directory)
 
 QDir DirectoryWidget::directory() const
 {
-    return m_directory;
+    return d->directory;
+}
+
+void DirectoryWidget::setQuickSearch(const QString& text)
+{
+    d->quickSearch = text;
+
+    if (d->quickSearchLabel == nullptr) {
+        d->quickSearchLabel = new QLabel(this);
+        d->quickSearchLabel->setFrameStyle(Panel | Raised);
+        d->quickSearchLabel->setMargin(4);
+        d->quickSearchLabel->setAutoFillBackground(true);
+    }
+
+    if (d->quickSearch.isEmpty()) {
+        if (d->quickSearchLabel)
+            d->quickSearchLabel->hide();
+
+        return;
+    }
+
+    d->quickSearchLabel->setText(d->quickSearch);
+    d->quickSearchLabel->resize(
+        d->quickSearchLabel->fontMetrics().boundingRect(d->quickSearch).size() + QSize(12, 10)
+    );
+    d->quickSearchLabel->move(30, parentWidget()->height() - 30 - d->quickSearchLabel->height());
+    d->quickSearchLabel->show();
 }
 
 void DirectoryWidget::reload()
 {
-    setDirectory(m_directory);
+    setDirectory(d->directory);
 }
 
 void DirectoryWidget::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
         emit activated(currentIndex());
+
+        event->accept();
+        return;
+    }
+
+    ;
+    if (const auto key = event->key(); key > 0 && key < 0xffff && QChar::isPrint(key)) {
+        setQuickSearch(d->quickSearch + event->text());
+
+        event->accept();
+        return;
+    }
+
+    if (!d->quickSearch.isEmpty() && event->key() == Qt::Key_Backspace) {
+        auto newValue = d->quickSearch;
+        newValue.chop(1);
+
+        setQuickSearch(newValue);
+
+        event->accept();
+        return;
+    }
+
+    if (event->key() == Qt::Key_Escape && !d->quickSearch.isEmpty()) {
+        setQuickSearch("");
+
+        event->accept();
         return;
     }
 

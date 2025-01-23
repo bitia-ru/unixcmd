@@ -24,9 +24,12 @@ class DirectoryWidget final : public QTableView {
 
 public:
     explicit DirectoryWidget(QWidget* parent = nullptr);
+    ~DirectoryWidget() override;
 
-    void setDirectory(const QString& directory);
+    void setDirectory(const QDir& directory);
     [[nodiscard]] QDir directory() const;
+
+    void setQuickSearch(const QString& text);
 
 public slots:
     void reload();
@@ -42,5 +45,6 @@ signals:
     void fileTriggered(const QFileInfo& fileInfo);
 
 private:
-    QString m_directory;
+    struct Private;
+    QScopedPointer<Private> d;
 };

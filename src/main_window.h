@@ -20,7 +20,7 @@ public:
 
 public:
     MainWindow();
-    virtual ~MainWindow();
+    ~MainWindow() override;
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
@@ -42,6 +42,7 @@ private:
 
     [[nodiscard]] QList<QFileInfo> selectedFiles() const;
 
+private:
     struct Private;
     QScopedPointer<Private> d;
 
