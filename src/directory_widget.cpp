@@ -182,6 +182,7 @@ struct DirectoryWidget::Private
 
     QString quickSearch;
     QLabel* quickSearchLabel = nullptr;
+    int quickSearchIndex = -1;
 };
 
 DirectoryWidget::DirectoryWidget(QWidget* parent) : QTableView(parent), d(new Private)
@@ -263,6 +264,7 @@ void DirectoryWidget::setQuickSearch(const QString& text)
     if (d->quickSearch.isEmpty()) {
         if (d->quickSearchLabel)
             d->quickSearchLabel->hide();
+        d->quickSearchIndex = -1;
 
         return;
     }
@@ -273,6 +275,16 @@ void DirectoryWidget::setQuickSearch(const QString& text)
     );
     d->quickSearchLabel->move(30, parentWidget()->height() - 30 - d->quickSearchLabel->height());
     d->quickSearchLabel->show();
+
+    for (int i = 0; i < model()->rowCount(); ++i) {
+        if (const auto item = model()->item(i, 0); item->text().startsWith(d->quickSearch, Qt::CaseInsensitive)) {
+            d->quickSearchIndex = i;
+            selectRow(i);
+            return;
+        }
+    }
+
+    d->quickSearchIndex = -1;
 }
 
 void DirectoryWidget::reload()
@@ -322,6 +334,18 @@ void DirectoryWidget::focusInEvent(QFocusEvent* event)
     QTableView::focusInEvent(event);
 
     emit focusIn();
+}
+
+void DirectoryWidget::selectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
+{
+    QTableView::selectionChanged(selected, deselected);
+
+    for (const auto& index : deselected.indexes()) {
+        if (index.row() == d->quickSearchIndex) {
+            setQuickSearch("");
+            break;
+        }
+    }
 }
 
 DirectoryWidgetModel* DirectoryWidget::model() const

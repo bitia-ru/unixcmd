@@ -37,8 +37,9 @@ public slots:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void focusInEvent(QFocusEvent *event) override;
+    void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
 
-    DirectoryWidgetModel* model() const;
+    [[nodiscard]] DirectoryWidgetModel* model() const;
 
 signals:
     void focusIn();
