@@ -1,6 +1,7 @@
 #include "main_window.h"
 
 #include "copy_dialog.h"
+#include "create_directory_dialog.h"
 #include "directory_widget.h"
 #include "double_panel_splitter.h"
 #include "file_processing_dialog.h"
@@ -9,13 +10,14 @@
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
+#include <QFutureWatcher>
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QProcess>
 #include <QQuickWindow>
 #include <QSplitter>
 #include <QTableWidgetItem>
-#include <QtConcurrent/QtConcurrent>
+#include <QtConcurrent/QtConcurrentRun>
 
 
 struct MainWindow::Private
@@ -70,6 +72,9 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             return true;
         case Qt::Key_F5:
             copySelection();
+            return true;
+        case Qt::Key_F7:
+            createDirectory();
             return true;
         case Qt::Key_F8:
             if (keyEvent->modifiers() & Qt::ShiftModifier)
@@ -282,7 +287,31 @@ void MainWindow::copySelection() {
     });
 }
 
-void MainWindow::removeSelected() {
+void MainWindow::createDirectory()
+{
+    auto createDirectoryDialog = new CreateDirectoryDialog(this);
+
+    connect(createDirectoryDialog, &CreateDirectoryDialog::closed, [this, createDirectoryDialog] {
+        createDirectoryDialog->deleteLater();
+    });
+
+    connect(createDirectoryDialog, &CreateDirectoryDialog::accepted, [this](const QString& directoryName) {
+        if (const QDir dir(activePanelWidget()->directory()); !dir.mkdir(directoryName)) {
+            QMessageBox::critical(
+                this,
+                "Error creating directory",
+                QString("Failed to create directory '%1'").arg(directoryName)
+            );
+        } else {
+            activePanelWidget()->reload();
+            if (activePanelWidget()->directory() == destinationPanelWidget()->directory())
+                destinationPanelWidget()->reload();
+        }
+    });
+}
+
+void MainWindow::removeSelected()
+{
     QList<QFileInfo> selectedFiles = this->selectedFiles();
 
     if (selectedFiles.isEmpty())

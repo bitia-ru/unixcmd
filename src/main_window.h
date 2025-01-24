@@ -37,6 +37,7 @@ private:
     void viewSelection();
     void editSelection();
     void copySelection();
+    void createDirectory();
     void removeSelected();
     void open(const QFileInfo& fileInfo);
     void toggleShowHiddenFiles();
