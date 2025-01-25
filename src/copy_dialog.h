@@ -9,13 +9,13 @@ class CopyDialog final : public QObject
     Q_OBJECT
 
 public:
-    CopyDialog(QObject* parent = nullptr, const QDir& destination = QDir());
+    CopyDialog(QObject* parent = nullptr, const QString& destination = QString());
     virtual ~CopyDialog();
 
     void close() const;
 
 signals:
-    void accepted(const QDir& destination);
+    void accepted(const QString& destination);
     void rejected();
     void closed();
 

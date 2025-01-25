@@ -18,7 +18,7 @@ struct CopyDialog::Private
     }
 };
 
-CopyDialog::CopyDialog(QObject* parent, const QDir& destination) : d(new Private), QObject(parent)
+CopyDialog::CopyDialog(QObject* parent, const QString& destination) : d(new Private), QObject(parent)
 {
     connect(&d->component, &QQmlComponent::statusChanged, [this, destination](const QQmlComponent::Status status)
     {
@@ -30,7 +30,7 @@ CopyDialog::CopyDialog(QObject* parent, const QDir& destination) : d(new Private
         case QQmlComponent::Ready:
             QObject* obj = d->component.createWithInitialProperties(
                 QVariantMap{
-                    {"destination", destination.absolutePath()},
+                    {"destination", destination},
                 });
 
             if (obj) {
@@ -61,7 +61,7 @@ void CopyDialog::onAccepted(const QString& destination)
 {
     close();
 
-    emit accepted(QDir(destination));
+    emit accepted(destination);
     emit closed();
 }
 

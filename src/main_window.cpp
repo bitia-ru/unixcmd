@@ -199,7 +199,10 @@ void MainWindow::copySelection() {
     if (selectedFiles.isEmpty())
         return;
 
-    auto copyDialog = new CopyDialog(this, destinationPanelWidget()->directory());
+    auto copyDialog = new CopyDialog(
+        this,
+        destinationPanelWidget()->directory().absolutePath() + "/"
+    );
     auto fileProcessingDialog = new FileProcessingDialog(this, "Copying files");
 
     auto aborted = new std::atomic(false);
@@ -223,68 +226,111 @@ void MainWindow::copySelection() {
         watcher->waitForFinished();
     });
 
-    connect(copyDialog, &CopyDialog::accepted, [this, selectedFiles, fileProcessingDialog, aborted, watcher](const QDir& destination) {
-        const auto future = QtConcurrent::run([this, destination, selectedFiles, fileProcessingDialog, aborted]() -> void {
-            QMetaObject::invokeMethod(fileProcessingDialog, [fileProcessingDialog] { fileProcessingDialog->show(); });
+    connect(copyDialog, &CopyDialog::accepted,
+        [this, selectedFiles, fileProcessingDialog, aborted, watcher](const QString& destination)
+        {
+            const auto future = QtConcurrent::run(
+                [this, destination, selectedFiles, fileProcessingDialog, aborted]() -> void
+                {
+                    QMetaObject::invokeMethod(fileProcessingDialog, [fileProcessingDialog] { fileProcessingDialog->show(); });
 
-            const std::function<bool(const QFileInfo&, const QDir&)> copyFileRecursive =
-                [this, &copyFileRecursive, fileProcessingDialog, aborted](const QFileInfo& file, const QDir& destination) -> bool {
-                    if (file.isFile() || file.isSymLink()) {
-                        const auto destinationFilePath = destination.filePath(file.fileName());
+                    const std::function<bool(const QFileInfo&, const QDir&)> copyFileRecursive =
+                        [this, &copyFileRecursive, fileProcessingDialog, aborted](const QFileInfo& file, const QDir& destination) -> bool
+                        {
+                            if (file.isFile() || file.isSymLink()) {
+                                const auto destinationFilePath = destination.filePath(file.fileName());
 
-                        QMetaObject::invokeMethod(fileProcessingDialog, [fileProcessingDialog, file] {
-                            fileProcessingDialog->setStatus(QString("Copying file '%1'").arg(file.fileName()));
-                        });
+                                QMetaObject::invokeMethod(fileProcessingDialog, [fileProcessingDialog, file] {
+                                    fileProcessingDialog->setStatus(QString("Copying file '%1'").arg(file.fileName()));
+                                });
 
-                        if (!QFile::copy(file.absoluteFilePath(), destinationFilePath)) {
-                            const auto selectedButton = QMessageBox::question(
-                                this,
-                                "Error copying file",
-                                QString("Failed to copy file '%1'").arg(file.fileName()),
-                                QMessageBox::Ignore | QMessageBox::Abort,
-                                QMessageBox::Abort
-                            );
+                                if (!QFile::copy(file.absoluteFilePath(), destinationFilePath)) {
+                                    const auto selectedButton = QMessageBox::question(
+                                        this,
+                                        "Error copying file",
+                                        QString("Failed to copy file '%1'").arg(file.fileName()),
+                                        QMessageBox::Ignore | QMessageBox::Abort,
+                                        QMessageBox::Abort
+                                    );
 
-                            if (selectedButton == QMessageBox::Abort)
-                                return true;
-                        }
-                    } else if (file.isDir() || file.isBundle()) {
-                        const auto& dirFiles = QDir(file.absoluteFilePath())
-                            .entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
-                        const auto& subDir = QDir(destination.filePath(file.fileName()));
-                        if (!subDir.exists()) {
-                            if (!subDir.mkpath(".")) {
-                                qDebug() << "Failed to create directory: " << subDir.absolutePath();
-                                return true;
+                                    if (selectedButton == QMessageBox::Abort)
+                                        return true;
+                                }
+                            } else if (file.isDir() || file.isBundle()) {
+                                const auto& dirFiles = QDir(file.absoluteFilePath())
+                                    .entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
+                                const auto& subDir = QDir(destination.filePath(file.fileName()));
+                                if (!subDir.exists()) {
+                                    if (!subDir.mkpath(".")) {
+                                        qDebug() << "Failed to create directory: " << subDir.absolutePath();
+                                        return true;
+                                    }
+                                }
+                                for (const auto& subFile: dirFiles)
+                                    if (copyFileRecursive(subFile, subDir))
+                                        return true;
+                            } else {
+                                qDebug() << "Unsupported file type: " << file.absoluteFilePath() << ", ignoring";
                             }
-                        }
-                        for (const auto& subFile: dirFiles)
-                            if (copyFileRecursive(subFile, subDir))
+
+                            if (*aborted)
                                 return true;
+
+                            return false;
+                        };
+
+                    if (!destination.endsWith("/")) {
+                        if (selectedFiles.size() == 1) {
+                            const auto file = selectedFiles.first();
+
+                            if (file.isFile() || file.isSymLink()) {
+                                if (!QFile::copy(file.absolutePath(), destination)) {
+                                    QMessageBox::critical(
+                                        this,
+                                        "Error copying file",
+                                        QString("Failed to copy file '%1'").arg(file.fileName())
+                                    );
+                                }
+
+                                return;
+                            }
+
+                            const auto destinationDir = QDir(destination);
+
+                            if (!destinationDir.mkdir(".")) {
+                                QMessageBox::critical(
+                                    this,
+                                    "Error creating directory",
+                                    QString("Failed to create directory '%1'").arg(destination)
+                                );
+
+                                return;
+                            }
+
+                            const auto& dirFiles = destinationDir
+                                .entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot);
+
+                            for (const auto& entry: dirFiles)
+                                if (copyFileRecursive(entry, destinationDir))
+                                    break;
+                        }
                     } else {
-                        qDebug() << "Unsupported file type: " << file.absoluteFilePath() << ", ignoring";
+                        for (const auto& file: selectedFiles)
+                            if (copyFileRecursive(file, destination))
+                                break;
+
+                        if (QDir(destination) == destinationPanelWidget()->directory())
+                            destinationPanelWidget()->reload();
+
+                        if (activePanelWidget()->directory() == destinationPanelWidget()->directory())
+                            activePanelWidget()->reload();
                     }
+                }
+            );
 
-                    if (*aborted)
-                        return true;
-
-                    return false;
-                };
-
-                for (const auto& file: selectedFiles)
-                    if (copyFileRecursive(file, destination))
-                        break;
-
-                if (destination == destinationPanelWidget()->directory())
-                    destinationPanelWidget()->reload();
-
-                if (activePanelWidget()->directory() == destinationPanelWidget()->directory())
-                    activePanelWidget()->reload();
-            }
-        );
-
-        watcher->setFuture(future);
-    });
+            watcher->setFuture(future);
+        }
+    );
 }
 
 void MainWindow::createDirectory()
