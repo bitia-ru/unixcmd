@@ -201,7 +201,9 @@ void MainWindow::copySelection() {
 
     auto copyDialog = new CopyDialog(
         this,
-        destinationPanelWidget()->directory().absolutePath() + "/"
+        selectedFiles.size() == 1
+            ? destinationPanelWidget()->directory().absoluteFilePath(selectedFiles.first().fileName())
+            : destinationPanelWidget()->directory().absolutePath() + "/"
     );
     auto fileProcessingDialog = new FileProcessingDialog(this, "Copying files");
 

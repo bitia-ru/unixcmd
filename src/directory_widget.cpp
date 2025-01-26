@@ -99,26 +99,26 @@ bool DirectoryWidgetModel::setData(const QModelIndex& index, const QVariant& val
         const auto originalFileInfo = QStandardItemModel::data(index, Qt::UserRole).value<QFileInfo>();
         const QFileInfo newFileInfo(originalFileInfo.absoluteDir().filePath(newFileName));
 
-        if (originalFileInfo.dir().rename(originalFileInfo.fileName(), newFileName)) {
-            QStandardItemModel::setData(index, QVariant::fromValue(newFileInfo), Qt::UserRole);
+        if (originalFileInfo.fileName() != newFileName && !originalFileInfo.dir().rename(originalFileInfo.fileName(), newFileName)) {
+            QMessageBox::critical(nullptr, "Error", "Can't rename file");
 
-            if (newFileInfo.isDir())
-                QStandardItemModel::setData(index, newFileInfo.fileName(), Qt::DisplayRole);
-            else {
-                QStandardItemModel::setData(index, newFileInfo.baseName(), Qt::DisplayRole);
-                QStandardItemModel::setData(
-                    DirectoryWidgetModel::index(index.row(), 1),
-                    newFileInfo.suffix(),
-                    Qt::DisplayRole
-                );
-            }
-
-            return true;
+            return false;
         }
 
-        QMessageBox::critical(nullptr, "Error", "Can't rename file");
+        QStandardItemModel::setData(index, QVariant::fromValue(newFileInfo), Qt::UserRole);
 
-        return false;
+        if (newFileInfo.isDir())
+            QStandardItemModel::setData(index, newFileInfo.fileName(), Qt::DisplayRole);
+        else {
+            QStandardItemModel::setData(index, newFileInfo.baseName(), Qt::DisplayRole);
+            QStandardItemModel::setData(
+                DirectoryWidgetModel::index(index.row(), 1),
+                newFileInfo.suffix(),
+                Qt::DisplayRole
+            );
+        }
+
+        return true;
     }
 
     return QStandardItemModel::setData(index, value, role);
