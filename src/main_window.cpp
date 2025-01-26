@@ -283,7 +283,7 @@ void MainWindow::copySelection() {
                                 const auto& subDir = QDir(destinationPath);
 
                                 for (const auto& subFile: dirFiles)
-                                    if (!copyFileRecursive(subFile, subDir.absolutePath()))
+                                    if (!copyFileRecursive(subFile, subDir.absoluteFilePath(subFile.fileName())))
                                         return false;
                             }
 
@@ -293,8 +293,9 @@ void MainWindow::copySelection() {
                             return true;
                         };
 
+                    const bool endsWithSlash = destination.endsWith("/");
                     const QFileInfo destinationInfo(destination);
-                    const QDir destinationDir = destination.endsWith("/")
+                    const QDir destinationDir = endsWithSlash
                         ? QDir(destination)
                         : destinationInfo.dir();
 
@@ -320,8 +321,9 @@ void MainWindow::copySelection() {
                                 break;
                             }
                     } else {
-                        const auto destinationFileName = destinationInfo.fileName();
-                        if (const auto& file = selectedFiles.first(); !copyFileRecursive(file, destinationDir.filePath(destinationFileName)))
+                        const auto& file = selectedFiles.first();
+                        const auto destinationFileName = endsWithSlash ? file.fileName() : destinationInfo.fileName();
+                        if (!copyFileRecursive(file, destinationDir.filePath(destinationFileName)))
                             QMessageBox::critical(
                                 nullptr,
                                 "Error copying files",
