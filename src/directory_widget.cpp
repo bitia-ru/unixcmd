@@ -351,6 +351,13 @@ void DirectoryWidget::selectionChanged(const QItemSelection& selected, const QIt
 {
     QTableView::selectionChanged(selected, deselected);
 
+    if (selectionModel()->selectedRows().count() == 0) {
+        if (deselected.count() > 0)
+            selectRow(deselected.indexes().first().row());
+        else
+            selectRow(0);
+    }
+
     for (const auto& index : deselected.indexes()) {
         if (index.row() == d->quickSearchIndex) {
             setQuickSearch("");
