@@ -7,6 +7,8 @@ else()
       copy_dialog.h
       create_directory_dialog.cpp
       create_directory_dialog.h
+      directory_view.cpp
+      directory_view.h
       directory_widget.cpp
       directory_widget.h
       double_panel_splitter.cpp

@@ -2,6 +2,7 @@
 
 #include "copy_dialog.h"
 #include "create_directory_dialog.h"
+#include "directory_view.h"
 #include "directory_widget.h"
 #include "double_panel_splitter.h"
 #include "file_processing_dialog.h"
@@ -32,6 +33,8 @@ MainWindow::MainWindow()
 {
     setWindowTitle("UnixCMD");
 
+    setContentsMargins(4, 0, 4, 0);
+
     qApp->installEventFilter(this);
 
     auto splitter = new DoublePanelSplitter(this);
@@ -41,10 +44,10 @@ MainWindow::MainWindow()
     splitter->addWidget(d->leftPanel = new DirectoryWidget(splitter));
     splitter->addWidget(d->rightPanel = new DirectoryWidget(splitter));
 
-    connect(d->leftPanel, &DirectoryWidget::focusIn, [this] { setActivePanel(LEFT); });
-    connect(d->rightPanel, &DirectoryWidget::focusIn, [this] { setActivePanel(RIGHT); });
-    connect(d->leftPanel, &DirectoryWidget::fileTriggered, this, &MainWindow::open);
-    connect(d->rightPanel, &DirectoryWidget::fileTriggered, this, &MainWindow::open);
+    connect(d->leftPanel->view(), &DirectoryView::focusIn, [this] { setActivePanel(LEFT); });
+    connect(d->rightPanel->view(), &DirectoryView::focusIn, [this] { setActivePanel(RIGHT); });
+    connect(d->leftPanel->view(), &DirectoryView::fileTriggered, this, &MainWindow::open);
+    connect(d->rightPanel->view(), &DirectoryView::fileTriggered, this, &MainWindow::open);
 
     resize(1024, 600);
 
@@ -62,7 +65,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             toggleActivePanel();
             return true;
         case Qt::Key_F2:
-            activePanelWidget()->reload();
+            activePanelWidget()->view()->reload();
             return true;
         case Qt::Key_F3:
             viewSelection();
@@ -101,9 +104,9 @@ void MainWindow::setActivePanel(ActivePanel panel) {
     m_activePanel = panel;
 
     if (panel == LEFT) {
-        d->leftPanel->setFocus();
+        d->leftPanel->view()->setFocus();
     } else {
-        d->rightPanel->setFocus();
+        d->rightPanel->view()->setFocus();
     }
 }
 
@@ -158,7 +161,7 @@ void MainWindow::viewSelection() {
     connect(
         viewProcess,
         &QProcess::errorOccurred,
-        [viewProcess](QProcess::ProcessError error) {
+        [viewProcess](QProcess::ProcessError) {
             QMessageBox::critical(nullptr, "Error", QString("Failed to view file(s): %1").arg(viewProcess->errorString()));
             viewProcess->deleteLater();
         }
@@ -202,8 +205,8 @@ void MainWindow::copySelection() {
     auto copyDialog = new CopyDialog(
         this,
         selectedFiles.size() == 1
-            ? destinationPanelWidget()->directory().absoluteFilePath(selectedFiles.first().fileName())
-            : destinationPanelWidget()->directory().absolutePath() + "/"
+            ? destinationPanelWidget()->view()->directory().absoluteFilePath(selectedFiles.first().fileName())
+            : destinationPanelWidget()->view()->directory().absolutePath() + "/"
     );
     auto fileProcessingDialog = new FileProcessingDialog(this, "Copying files");
 
@@ -333,11 +336,11 @@ void MainWindow::copySelection() {
                             );
                     }
 
-                    if (destinationPanelWidget()->directory() == destinationDir)
-                        destinationPanelWidget()->reload();
+                    if (destinationPanelWidget()->view()->directory() == destinationDir)
+                        destinationPanelWidget()->view()->reload();
 
-                    if (activePanelWidget()->directory() == destinationDir)
-                        activePanelWidget()->reload();
+                    if (activePanelWidget()->view()->directory() == destinationDir)
+                        activePanelWidget()->view()->reload();
                 }
             );
 
@@ -355,16 +358,16 @@ void MainWindow::createDirectory()
     });
 
     connect(createDirectoryDialog, &CreateDirectoryDialog::accepted, [this](const QString& directoryName) {
-        if (const QDir dir(activePanelWidget()->directory()); !dir.mkdir(directoryName)) {
+        if (const QDir dir(activePanelWidget()->view()->directory()); !dir.mkdir(directoryName)) {
             QMessageBox::critical(
                 this,
                 "Error creating directory",
                 QString("Failed to create directory '%1'").arg(directoryName)
             );
         } else {
-            activePanelWidget()->reload();
-            if (activePanelWidget()->directory() == destinationPanelWidget()->directory())
-                destinationPanelWidget()->reload();
+            activePanelWidget()->view()->reload();
+            if (activePanelWidget()->view()->directory() == destinationPanelWidget()->view()->directory())
+                destinationPanelWidget()->view()->reload();
         }
     });
 }
@@ -427,9 +430,9 @@ void MainWindow::removeSelected()
             }
         }
 
-        activePanelWidget()->reload();
-        if (activePanelWidget()->directory() == destinationPanelWidget()->directory())
-            destinationPanelWidget()->reload();
+        activePanelWidget()->view()->reload();
+        if (activePanelWidget()->view()->directory() == destinationPanelWidget()->view()->directory())
+            destinationPanelWidget()->view()->reload();
     }
 }
 
@@ -441,14 +444,14 @@ void MainWindow::open(const QFileInfo& fileInfo) {
 void MainWindow::toggleShowHiddenFiles() {
     d->showHiddenFiles = !d->showHiddenFiles;
 
-    d->leftPanel->setShowHiddenFiles(d->showHiddenFiles);
-    d->rightPanel->setShowHiddenFiles(d->showHiddenFiles);
+    d->leftPanel->view()->setShowHiddenFiles(d->showHiddenFiles);
+    d->rightPanel->view()->setShowHiddenFiles(d->showHiddenFiles);
 }
 
 QList<QFileInfo> MainWindow::selectedFiles() const {
     QList<QFileInfo> files;
 
-    for (const auto& index : activePanelWidget()->selectionModel()->selectedRows())
+    for (const auto& index : activePanelWidget()->view()->selectionModel()->selectedRows())
         files.append(index.data(Qt::UserRole).value<QFileInfo>());
 
     return files;

@@ -4,8 +4,8 @@
 #include <QScopedPointer>
 #include <QFileInfo>
 
-class DirectoryWidget;
 
+class DirectoryWidget;
 
 class MainWindow final : public QMainWindow
 {
