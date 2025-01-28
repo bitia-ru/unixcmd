@@ -159,7 +159,11 @@ bool DirectoryWidgetModel::setDirectory(const QDir& dir, bool showHiddenFiles)
 
         items.append(fileEntry);
 
-        const auto extItem = new QStandardItem(entry.suffix());
+        const auto extItem = new QStandardItem(
+            entry.isDir() || entry.isBundle()
+                ? ""
+                : entry.suffix()
+        );
         extItem->setTextAlignment(Qt::AlignCenter);
         extItem->setEditable(false);
         items.append(extItem);
