@@ -139,7 +139,7 @@ void MainWindow::viewSelection() {
     }
 
     if (QSysInfo::productType() == "macos") {
-        viewProcess->setProgram("/usr/sbin/qlmanage");
+        viewProcess->setProgram("/usr/bin/qlmanage");
         viewProcess->setArguments(QStringList{"-p",} + files);
     } else if (QSysInfo::productType() == "ubuntu") {
         viewProcess->setProgram("/usr/bin/xdg-open");
