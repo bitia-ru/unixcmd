@@ -1,4 +1,6 @@
 Crossplatform double-panel file manager
 ===================
 
-Under development.
+![UnixCMD screenshot](unixcmd.png)
+
+Under development
