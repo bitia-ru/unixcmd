@@ -1,8 +1,18 @@
 if(ANDROID)
   qt_add_library(${PROJECT_NAME} SHARED)
 else()
+  if(APPLE)
+    set(MACOSX_BUNDLE_ICON_FILE "unixcmd.icns")
+
+    set(project_icon_macos "${CMAKE_CURRENT_SOURCE_DIR}/resources/unixcmd.icns")
+    set_source_files_properties(${project_icon_macos} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+
+    set(PLATFORM_DEPENDENT_ARGUMENTS MACOSX_BUNDLE ${project_icon_macos})
+  endif()
+
   qt_add_executable(
     ${PROJECT_NAME}
+      ${PLATFORM_DEPENDENT_ARGUMENTS}
       copy_dialog.cpp
       copy_dialog.h
       create_directory_dialog.cpp
@@ -43,3 +53,6 @@ target_link_libraries(
 )
 
 include(cmake/ios.cmake)
+if(APPLE)
+  include(cmake/macos.cmake)
+endif()

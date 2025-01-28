@@ -22,4 +22,6 @@ find_package(
     REQUIRED
 )
 
+qt_standard_project_setup()
+
 add_subdirectory(src)
