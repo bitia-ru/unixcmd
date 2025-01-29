@@ -138,7 +138,11 @@ bool DirectoryItemModel::setDirectory(const QDir& dir, bool showHiddenFiles)
         item->setFlags(item->flags() & ~Qt::ItemIsEditable);
         item->setIcon(QFileIconProvider().icon(QAbstractFileIconProvider::Folder));
 
-        appendRow({item});
+        const auto extItem = new QStandardItem("");
+        extItem->setTextAlignment(Qt::AlignCenter);
+        extItem->setEditable(false);
+
+        appendRow({item, extItem, fileSizeItemByEntry(QFileInfo(dir.absolutePath()))});
     }
 
     QDir::Filters filters = QDir::AllEntries | QDir::NoDotAndDotDot | QDir::System;
@@ -191,6 +195,8 @@ struct DirectoryView::Private
     QString quickSearch;
     QLabel* quickSearchLabel = nullptr;
     int quickSearchIndex = -1;
+
+    SortType sortType = Unsorted;
 };
 
 DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Private)
@@ -233,6 +239,14 @@ DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Privat
     };
 
     connect(this, &QTableView::activated, onCellEntered);
+
+    connect(horizontalHeader(), &QHeaderView::sectionClicked, [this](int column) {
+        setSorting(static_cast<SortType>(column));
+    });
+
+    setSorting(d->sortType);
+
+    connect(model(), &QAbstractItemModel::dataChanged, [this] { setSorting(d->sortType); });
 }
 
 DirectoryView::~DirectoryView() = default;
@@ -302,6 +316,25 @@ void DirectoryView::setShowHiddenFiles(bool showHiddenFiles)
     d->showHiddenFiles = showHiddenFiles;
 
     reload();
+}
+
+void DirectoryView::setSorting(SortType sortType)
+{
+    setSortingEnabled(true);
+
+    switch (sortType) {
+    case SortByName:
+        sortByColumn(0, Qt::AscendingOrder);
+        break;
+    case SortByExtension:
+        sortByColumn(1, Qt::AscendingOrder);
+        break;
+    case SortBySize:
+        sortByColumn(2, Qt::AscendingOrder);
+        break;
+    default:
+        setSortingEnabled(false);
+    }
 }
 
 void DirectoryView::reload()

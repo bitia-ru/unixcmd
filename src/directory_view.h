@@ -23,6 +23,15 @@ class DirectoryView final : public QTableView {
     Q_OBJECT
 
 public:
+    enum SortType
+    {
+        SortByName,
+        SortByExtension,
+        SortBySize,
+        Unsorted,
+    };
+
+public:
     explicit DirectoryView(QWidget* parent = nullptr);
     ~DirectoryView() override;
 
@@ -30,8 +39,8 @@ public:
     [[nodiscard]] QDir directory() const;
 
     void setQuickSearch(const QString& text);
-
     void setShowHiddenFiles(bool showHiddenFiles);
+    void setSorting(SortType sortType);
 
 public slots:
     void reload();
