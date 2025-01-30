@@ -1,10 +1,21 @@
 #pragma once
 
 #include <QFileInfo>
+#include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include <QStyledItemDelegate>
 #include <QTableWidget>
 
+
+class DirectorySortFilterProxyModel : public QSortFilterProxyModel {
+    Q_OBJECT
+
+public:
+    explicit DirectorySortFilterProxyModel(QObject *parent = nullptr);
+
+protected:
+    bool lessThan(const QModelIndex &left, const QModelIndex &right) const override;
+};
 
 class DirectoryItemModel final : public QStandardItemModel {
     Q_OBJECT
@@ -15,8 +26,6 @@ public:
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     bool setData(const QModelIndex& index, const QVariant& value, int role) override;
-
-    bool setDirectory(const QDir& dir, bool showHiddenFiles);
 };
 
 class DirectoryView final : public QTableView {
@@ -50,14 +59,14 @@ protected:
     void focusInEvent(QFocusEvent *event) override;
     void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
 
-    [[nodiscard]] DirectoryItemModel* model() const;
-
 signals:
     void directoryChanged(const QDir& directory);
     void focusIn();
     void fileTriggered(const QFileInfo& fileInfo);
 
 private:
+    bool setDirectoryInternal(const QDir& dir, bool showHiddenFiles);
+
     struct Private;
     QScopedPointer<Private> d;
 };

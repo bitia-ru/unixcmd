@@ -261,7 +261,7 @@ void MainWindow::copySelection() {
                             }
                         } else if (file.isSymLink()) {
                             qDebug() << "Symlinks are not supported, ignoring: " << file.absoluteFilePath();
-                        } else if (file.isDir() || file.isBundle()) {
+                        } else if (file.isDir()) {
                             if (const QDir destinationDir(destinationPath); !destinationDir.mkpath(".")) {
                                 QMessageBox::critical(
                                     nullptr,
@@ -282,7 +282,7 @@ void MainWindow::copySelection() {
                             if (!copyFile(file, destinationPath))
                                 return false;
 
-                            if (file.isDir() || file.isBundle()) {
+                            if (file.isDir()) {
                                 const auto& dirFiles = QDir(file.absoluteFilePath())
                                     .entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
                                 const auto& subDir = QDir(destinationPath);
@@ -414,9 +414,8 @@ void MainWindow::removeSelected()
             if (fileInfo.isFile() || fileInfo.isSymLink()) {
                 if (!removeFile(fileInfo))
                     break;
-            } else if (fileInfo.isDir() || fileInfo.isBundle()) {
-                QDir dir(fileInfo.absoluteFilePath());
-                if (!dir.removeRecursively()) {
+            } else if (fileInfo.isDir()) {
+                if (QDir dir(fileInfo.absoluteFilePath()); !dir.removeRecursively()) {
                     const auto errorMsgBoxResponse = QMessageBox::critical(
                         this,
                         "Error deleting directory",

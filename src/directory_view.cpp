@@ -81,6 +81,41 @@ QStandardItem* attrItemByEntry(const QFileInfo& entry)
 
 }
 
+DirectorySortFilterProxyModel::DirectorySortFilterProxyModel(QObject* parent/* = nullptr*/)
+    : QSortFilterProxyModel(parent)
+{
+}
+
+bool DirectorySortFilterProxyModel::lessThan(const QModelIndex& left, const QModelIndex& right) const
+{
+    const auto leftFirstColumnIndex = sourceModel()->index(left.row(), 0);
+    const auto rightFirstColumnIndex = sourceModel()->index(right.row(), 0);
+
+    const auto leftData = sourceModel()->data(leftFirstColumnIndex, Qt::UserRole).value<QFileInfo>();
+    const auto rightData = sourceModel()->data(rightFirstColumnIndex, Qt::UserRole).value<QFileInfo>();
+
+    const auto leftDotDotDirIndicator = sourceModel()->data(leftFirstColumnIndex, Qt::UserRole + 1);
+    const auto rightDotDotDirIndicator = sourceModel()->data(rightFirstColumnIndex, Qt::UserRole + 1);
+
+    if (leftDotDotDirIndicator.toBool())
+        return sortOrder() == Qt::AscendingOrder;
+    if (rightDotDotDirIndicator.toBool())
+        return sortOrder() == Qt::DescendingOrder;
+
+    if (const int column = left.column(); column == 0)
+        return leftData.fileName().toLower() < rightData.fileName().toLower();
+    else if (column == 1) {
+        if (leftData.isDir())
+            return false;
+        if (rightData.isDir())
+            return true;
+
+        return leftData.suffix() < rightData.suffix();
+    }
+
+    return QSortFilterProxyModel::lessThan(left, right);
+}
+
 QVariant DirectoryItemModel::data(const QModelIndex &index, const int role/* = Qt::DisplayRole*/) const
 {
     if (index.column() == 0 && role == Qt::EditRole) {
@@ -124,9 +159,75 @@ bool DirectoryItemModel::setData(const QModelIndex& index, const QVariant& value
     return QStandardItemModel::setData(index, value, role);
 }
 
-bool DirectoryItemModel::setDirectory(const QDir& dir, bool showHiddenFiles)
+struct DirectoryView::Private
 {
-    removeRows(0, rowCount());
+    QDir directory;
+    bool showHiddenFiles = false;
+
+    QString quickSearch;
+    QLabel* quickSearchLabel = nullptr;
+    int quickSearchIndex = -1;
+    DirectorySortFilterProxyModel* model = nullptr;
+
+    SortType sortType = Unsorted;
+    bool sortAscending = true;
+};
+
+DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Private)
+{
+    d->model = new DirectorySortFilterProxyModel(this);
+    d->model->setSourceModel(new DirectoryItemModel(0, 5, this));
+    QTableView::setModel(d->model);
+
+    setEditTriggers(SelectedClicked);
+    setSelectionBehavior(SelectRows);
+
+    const auto headers = QStringList{"Name", "Ext", "Size", "Date", "Attr"};
+    for (int i = 0; i < headers.size(); ++i)
+        d->model->setHeaderData(i, Qt::Horizontal, headers[i]);
+
+    horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    horizontalHeader()->resizeSection(1, 60);
+    horizontalHeader()->resizeSection(2, 90);
+    horizontalHeader()->resizeSection(3, 110);
+    horizontalHeader()->resizeSection(4, 50);
+
+    verticalHeader()->setVisible(false);
+    verticalHeader()->setDefaultSectionSize(14);
+
+    setDirectory(QDir::currentPath());
+
+    const auto onCellEntered = [this](const QModelIndex& index) {
+        const auto fileNameIndex = d->model->index(index.row(), 0);
+
+        if (const auto fileInfo = d->model->data(fileNameIndex, Qt::UserRole).value<QFileInfo>(); fileInfo.isDir()) {
+            if (!fileInfo.absoluteDir().isReadable()) {
+                QMessageBox::critical(this, "Error", "Can't open directory: permission denied");
+                return;
+            }
+
+            setDirectory(fileInfo.absoluteFilePath());
+        } else {
+            emit fileTriggered(fileInfo);
+        }
+    };
+
+    connect(this, &QTableView::activated, onCellEntered);
+
+    connect(horizontalHeader(), &QHeaderView::sectionClicked, [this](int column) {
+        setSorting(static_cast<SortType>(column));
+    });
+
+    setSorting(d->sortType);
+
+    connect(d->model, &QAbstractItemModel::dataChanged, [this] { setSorting(d->sortType); });
+}
+
+DirectoryView::~DirectoryView() = default;
+
+bool DirectoryView::setDirectoryInternal(const QDir& dir, bool showHiddenFiles)
+{
+    d->model->removeRows(0, d->model->rowCount());
 
     if (!dir.exists())
         return false;
@@ -135,6 +236,7 @@ bool DirectoryItemModel::setDirectory(const QDir& dir, bool showHiddenFiles)
         const auto item = new QStandardItem("[..]");
         const auto parentDirPath = QDir::cleanPath(QFileInfo(dir.absolutePath()).dir().absolutePath());
         item->setData(QVariant::fromValue(QFileInfo(parentDirPath)), Qt::UserRole);
+        item->setData(QVariant::fromValue(true), Qt::UserRole + 1);
         item->setFlags(item->flags() & ~Qt::ItemIsEditable);
         item->setIcon(QFileIconProvider().icon(QAbstractFileIconProvider::Folder));
 
@@ -142,7 +244,7 @@ bool DirectoryItemModel::setDirectory(const QDir& dir, bool showHiddenFiles)
         extItem->setTextAlignment(Qt::AlignCenter);
         extItem->setEditable(false);
 
-        appendRow({item, extItem, fileSizeItemByEntry(QFileInfo(dir.absolutePath()))});
+        dynamic_cast<QStandardItemModel*>(d->model->sourceModel())->appendRow({item, extItem, fileSizeItemByEntry(QFileInfo(dir.absolutePath()))});
     }
 
     QDir::Filters filters = QDir::AllEntries | QDir::NoDotAndDotDot | QDir::System;
@@ -163,11 +265,7 @@ bool DirectoryItemModel::setDirectory(const QDir& dir, bool showHiddenFiles)
 
         items.append(fileEntry);
 
-        const auto extItem = new QStandardItem(
-            entry.isDir() || entry.isBundle()
-                ? ""
-                : entry.suffix()
-        );
+        const auto extItem = new QStandardItem(entry.isDir() ? "" : entry.suffix());
         extItem->setTextAlignment(Qt::AlignCenter);
         extItem->setEditable(false);
         items.append(extItem);
@@ -181,75 +279,12 @@ bool DirectoryItemModel::setDirectory(const QDir& dir, bool showHiddenFiles)
 
         items.append(attrItemByEntry(entry));
 
-        appendRow(items);
+        dynamic_cast<QStandardItemModel*>(d->model->sourceModel())->appendRow(items);
     }
 
     return true;
 }
 
-struct DirectoryView::Private
-{
-    QDir directory;
-    bool showHiddenFiles = false;
-
-    QString quickSearch;
-    QLabel* quickSearchLabel = nullptr;
-    int quickSearchIndex = -1;
-
-    SortType sortType = Unsorted;
-};
-
-DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Private)
-{
-    QTableView::setModel(new DirectoryItemModel(0, 5, this));
-
-    setEditTriggers(SelectedClicked);
-    setSelectionBehavior(SelectRows);
-
-    const auto headers = QStringList{"Name", "Ext", "Size", "Date", "Attr"};
-    for (int i = 0; i < headers.size(); ++i)
-        model()->setHeaderData(i, Qt::Horizontal, headers[i]);
-
-    horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-    horizontalHeader()->resizeSection(1, 60);
-    horizontalHeader()->resizeSection(2, 90);
-    horizontalHeader()->resizeSection(3, 110);
-    horizontalHeader()->resizeSection(4, 50);
-
-    verticalHeader()->setVisible(false);
-    verticalHeader()->setDefaultSectionSize(14);
-
-    setDirectory(QDir::currentPath());
-
-    const auto onCellEntered = [this](const QModelIndex& index) {
-        const auto fileNameItem = model()->itemFromIndex(
-            model()->index(index.row(), 0)
-        );
-
-        if (const auto fileInfo = fileNameItem->data(Qt::UserRole).value<QFileInfo>(); fileInfo.isDir()) {
-            if (!fileInfo.absoluteDir().isReadable()) {
-                QMessageBox::critical(this, "Error", "Can't open directory: permission denied");
-                return;
-            }
-
-            setDirectory(fileInfo.absoluteFilePath());
-        } else {
-            emit fileTriggered(fileInfo);
-        }
-    };
-
-    connect(this, &QTableView::activated, onCellEntered);
-
-    connect(horizontalHeader(), &QHeaderView::sectionClicked, [this](int column) {
-        setSorting(static_cast<SortType>(column));
-    });
-
-    setSorting(d->sortType);
-
-    connect(model(), &QAbstractItemModel::dataChanged, [this] { setSorting(d->sortType); });
-}
-
-DirectoryView::~DirectoryView() = default;
 
 void DirectoryView::setDirectory(const QDir& directory)
 {
@@ -258,12 +293,12 @@ void DirectoryView::setDirectory(const QDir& directory)
     if (!dir.isReadable())
         return;
 
-    if (!model()->setDirectory(dir, d->showHiddenFiles))
+    if (!setDirectoryInternal(dir, d->showHiddenFiles))
         return;
 
     d->directory = dir;
 
-    if (model()->rowCount() > 0)
+    if (d->model->rowCount() > 0)
         selectRow(0);
 
     emit directoryChanged(d->directory);
@@ -300,8 +335,8 @@ void DirectoryView::setQuickSearch(const QString& text)
     d->quickSearchLabel->move(30, parentWidget()->height() - 30 - d->quickSearchLabel->height());
     d->quickSearchLabel->show();
 
-    for (int i = 0; i < model()->rowCount(); ++i) {
-        if (const auto item = model()->item(i, 0); item->text().startsWith(d->quickSearch, Qt::CaseInsensitive)) {
+    for (int i = 0; i < d->model->rowCount(); ++i) {
+        if (const auto item = dynamic_cast<QStandardItemModel*>(d->model->sourceModel())->item(i, 0); item->text().startsWith(d->quickSearch, Qt::CaseInsensitive)) {
             d->quickSearchIndex = i;
             selectRow(i);
             return;
@@ -324,17 +359,24 @@ void DirectoryView::setSorting(SortType sortType)
 
     switch (sortType) {
     case SortByName:
-        sortByColumn(0, Qt::AscendingOrder);
+        if (d->sortType == SortByName)
+            d->sortAscending = !d->sortAscending;
+        sortByColumn(0, d->sortAscending ? Qt::AscendingOrder : Qt::DescendingOrder);
         break;
     case SortByExtension:
-        sortByColumn(1, Qt::AscendingOrder);
+        if (d->sortType == SortByExtension)
+            d->sortAscending = !d->sortAscending;
+        sortByColumn(1, d->sortAscending ? Qt::AscendingOrder : Qt::DescendingOrder);
         break;
     case SortBySize:
-        sortByColumn(2, Qt::AscendingOrder);
+        if (d->sortType == SortBySize)
+            d->sortAscending = !d->sortAscending;
+        sortByColumn(2, d->sortAscending ? Qt::AscendingOrder : Qt::DescendingOrder);
         break;
     default:
         setSortingEnabled(false);
     }
+    d->sortType = sortType;
 }
 
 void DirectoryView::reload()
@@ -403,9 +445,4 @@ void DirectoryView::selectionChanged(const QItemSelection& selected, const QItem
             break;
         }
     }
-}
-
-DirectoryItemModel* DirectoryView::model() const
-{
-    return qobject_cast<DirectoryItemModel*>(QTableView::model());
 }
