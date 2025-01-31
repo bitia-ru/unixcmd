@@ -27,6 +27,8 @@ CreateDirectoryDialog::CreateDirectoryDialog(QObject* parent) : d(new Private), 
             for (const QQmlError &error: d->component.errors()) {
                 qDebug() << "QML Error:" << error.toString();
             }
+            break;
+
         case QQmlComponent::Ready:
             QObject* obj = d->component.create();
 

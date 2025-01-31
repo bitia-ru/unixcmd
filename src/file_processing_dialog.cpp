@@ -27,7 +27,9 @@ FileProcessingDialog::FileProcessingDialog(QObject* parent, const QString& title
             for (const QQmlError &error: d->component.errors()) {
                 qDebug() << "QML Error:" << error.toString();
             }
-        case QQmlComponent::Ready:
+            break;
+
+        case QQmlComponent::Ready:{
             QObject* obj = d->component.createWithInitialProperties(
                 QVariantMap{
                     {"title", title},
@@ -40,6 +42,9 @@ FileProcessingDialog::FileProcessingDialog(QObject* parent, const QString& title
                     d->window = window;
                 }
             }
+        }
+
+        default:
         }
     });
 

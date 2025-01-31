@@ -27,7 +27,9 @@ CopyDialog::CopyDialog(QObject* parent, const QString& destination) : d(new Priv
             for (const QQmlError &error: d->component.errors()) {
                 qDebug() << "QML Error:" << error.toString();
             }
-        case QQmlComponent::Ready:
+            break;
+
+        case QQmlComponent::Ready:{
             QObject* obj = d->component.createWithInitialProperties(
                 QVariantMap{
                     {"destination", destination},
@@ -43,6 +45,9 @@ CopyDialog::CopyDialog(QObject* parent, const QString& destination) : d(new Priv
                     d->window = window;
                 }
             }
+        }
+
+        default:
         }
     });
 

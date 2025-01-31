@@ -1,5 +1,6 @@
 #include "main_window.h"
 
+#include "about_dialog.h"
 #include "copy_dialog.h"
 #include "create_directory_dialog.h"
 #include "directory_view.h"
@@ -13,6 +14,7 @@
 #include <QFileInfo>
 #include <QFutureWatcher>
 #include <QKeyEvent>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QProcess>
 #include <QQuickWindow>
@@ -52,6 +54,14 @@ MainWindow::MainWindow()
     resize(1024, 600);
 
     setActivePanel(m_activePanel);
+
+    const auto aboutAction = menuBar()->addMenu(tr("&File"))->addAction(tr("About"));
+
+    connect(aboutAction, &QAction::triggered, [this] {
+        const auto aboutDialog = new AboutDialog(this);
+
+        connect(aboutDialog, &AboutDialog::closed, aboutDialog, &AboutDialog::deleteLater);
+    });
 }
 
 MainWindow::~MainWindow() = default;
