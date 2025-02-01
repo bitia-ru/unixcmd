@@ -17,6 +17,9 @@ public:
     DirectoryView* view() const;
 
 private:
+    void resizeEvent(QResizeEvent* event) override;
+
+private:
     struct Private;
     QScopedPointer<Private> d;
 };
