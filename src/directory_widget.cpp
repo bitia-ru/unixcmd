@@ -11,6 +11,16 @@ struct DirectoryWidget::Private
 {
     QLabel* title = nullptr;
     DirectoryView* view = nullptr;
+
+    void setTitle(const QString& dirPath)
+    {
+        QString resultPath(dirPath);
+
+        if (const auto homePath = QDir::homePath(); resultPath.startsWith(homePath))
+            resultPath.replace(0, homePath.size(), "🏠");
+
+        title->setText(resultPath);
+    }
 };
 
 DirectoryWidget::DirectoryWidget(QWidget* parent)
@@ -29,14 +39,14 @@ DirectoryWidget::DirectoryWidget(QWidget* parent)
     setLayout(layout);
 
     connect(d->view, &DirectoryView::directoryChanged, [this](const QDir& directory) {
-        d->title->setText(directory.absolutePath());
+        d->setTitle(directory.absolutePath());
     });
-    d->title->setText(d->view->directory().absolutePath());
+    d->setTitle(d->view->directory().absolutePath());
 }
 
 DirectoryWidget::~DirectoryWidget() = default;
 
-DirectoryView* DirectoryWidget::view()
+DirectoryView* DirectoryWidget::view() const
 {
     return d->view;
 }

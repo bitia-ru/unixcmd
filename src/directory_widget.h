@@ -14,7 +14,7 @@ public:
     explicit DirectoryWidget(QWidget* parent = nullptr);
     ~DirectoryWidget() override;
 
-    DirectoryView* view();
+    DirectoryView* view() const;
 
 private:
     struct Private;
