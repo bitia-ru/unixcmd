@@ -1,4 +1,5 @@
 #include "directory_view.h"
+#include "directory_view_style.h"
 
 #include <QDir>
 #include <QFileIconProvider>
@@ -8,6 +9,7 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QMetaProperty>
+#include <QPainter>
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include <QTableView>
@@ -177,10 +179,12 @@ DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Privat
 {
     d->model = new DirectorySortFilterProxyModel(this);
     d->model->setSourceModel(new DirectoryItemModel(0, 5, this));
-    QTableView::setModel(d->model);
+    setModel(d->model);
 
     setEditTriggers(SelectedClicked);
     setSelectionBehavior(SelectRows);
+
+    setStyle(new CustomStyle(style()));
 
     const auto headers = QStringList{"Name", "Ext", "Size", "Date", "Attr"};
     for (int i = 0; i < headers.size(); ++i)
@@ -393,8 +397,8 @@ void DirectoryView::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    ;
-    if (const auto key = event->key(); key > 0 && key < 0xffff && QChar::isPrint(key)) {
+    if (const auto key = event->key(); key > 0 && key < 0xffff && QChar::isPrint(key) &&
+        (!d->quickSearch.isEmpty() || key != Qt::Key_Space)) {
         setQuickSearch(d->quickSearch + event->text());
 
         event->accept();
@@ -413,6 +417,31 @@ void DirectoryView::keyPressEvent(QKeyEvent* event)
 
     if (event->key() == Qt::Key_Escape && !d->quickSearch.isEmpty()) {
         setQuickSearch("");
+
+        event->accept();
+        return;
+    }
+
+    if (event->key() == Qt::Key_Up) {
+        const auto index = currentIndex();
+        selectionModel()->setCurrentIndex(index.sibling(index.row()-1, 0), QItemSelectionModel::Rows | QItemSelectionModel::NoUpdate);
+
+        event->accept();
+        return;
+    }
+
+    if (event->key() == Qt::Key_Down) {
+        const auto index = currentIndex();
+        selectionModel()->setCurrentIndex(index.sibling(index.row()+1, 0), QItemSelectionModel::Rows | QItemSelectionModel::NoUpdate);
+
+        event->accept();
+        return;
+    }
+
+    if (event->key() == Qt::Key_Space) {
+        qDebug() << currentIndex().row();
+        qDebug() << selectionModel()->selectedRows();
+        selectionModel()->select(currentIndex().siblingAtRow(currentIndex().row()), QItemSelectionModel::Rows | QItemSelectionModel::Toggle);
 
         event->accept();
         return;

@@ -3,7 +3,6 @@
 #include <QFileInfo>
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
-#include <QStyledItemDelegate>
 #include <QTableWidget>
 
 
@@ -54,7 +53,7 @@ public:
 public slots:
     void reload();
 
-protected:
+private:
     void keyPressEvent(QKeyEvent *event) override;
     void focusInEvent(QFocusEvent *event) override;
     void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
