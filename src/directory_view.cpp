@@ -413,8 +413,11 @@ void DirectoryView::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    if (const auto key = event->key(); key > 0 && key < 0xffff && QChar::isPrint(key) &&
-        (!d->quickSearch.isEmpty() || key != Qt::Key_Space)) {
+    if (
+        const auto key = event->key();
+        key > 0 && key < 0xffff && QChar::isPrint(key)
+            && (!d->quickSearch.isEmpty() || key != Qt::Key_Space)
+    ) {
         setQuickSearch(d->quickSearch + event->text());
 
         event->accept();
@@ -442,8 +445,16 @@ void DirectoryView::keyPressEvent(QKeyEvent* event)
         if (event->key() == Qt::Key_Up) {
             if (const auto index = currentIndex(); !index.isValid())
                 setCurrentRow(0);
-            else if (index.row() > 0)
+            else if (index.row() > 0) {
+                if (event->modifiers() & Qt::ShiftModifier) {
+                    selectionModel()->select(
+                        index,
+                        QItemSelectionModel::Rows | QItemSelectionModel::Toggle
+                    );
+                }
+
                 setCurrentRow(index.row() - 1);
+            }
 
             event->accept();
             return;
@@ -452,8 +463,16 @@ void DirectoryView::keyPressEvent(QKeyEvent* event)
         if (event->key() == Qt::Key_Down) {
             if (const auto index = currentIndex(); !index.isValid())
                 setCurrentRow(d->model->rowCount() - 1);
-            else if (index.row() < d->model->rowCount() - 1)
+            else if (index.row() < d->model->rowCount() - 1) {
+                if (event->modifiers() & Qt::ShiftModifier) {
+                    selectionModel()->select(
+                        index,
+                        QItemSelectionModel::Rows | QItemSelectionModel::Toggle
+                    );
+                }
+
                 setCurrentRow(index.row() + 1);
+            }
 
             event->accept();
             return;
