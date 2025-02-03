@@ -172,6 +172,24 @@ DirectoryWidget::DirectoryWidget(QWidget* parent)
         d->setTitle(directory);
     });
     d->setTitle(d->view->directory());
+
+    connect(
+        d->view->selectionModel(),
+        &QItemSelectionModel::selectionChanged,
+        [this] {
+            const int selectedFilesCount = selectedFiles().count();
+
+            if (selectedFilesCount > 0) {
+                d->statusBar->showMessage(
+                    QString("Selected %1 file(s) of %2")
+                        .arg(selectedFilesCount)
+                        .arg(filesCount())
+                );
+            } else {
+                d->statusBar->clearMessage();
+            }
+        }
+    );
 }
 
 DirectoryWidget::~DirectoryWidget() = default;
@@ -187,6 +205,36 @@ void DirectoryWidget::toggleShowHiddenFiles()
 
     d->view->setShowHiddenFiles(newState);
     d->statusBar->setHiddenFilesVisible(newState);
+}
+
+QList<QFileInfo> DirectoryWidget::selectedFiles() const
+{
+    QList<QFileInfo> files;
+
+    for (const auto& index : view()->selectionModel()->selectedRows()) {
+        if (index.data(Qt::UserRole + 1).toBool())
+            continue;
+
+        files.append(index.data(Qt::UserRole).value<QFileInfo>());
+    }
+
+    return files;
+}
+
+std::optional<QFileInfo> DirectoryWidget::currentFile() const
+{
+    const auto currentIndex = view()->currentIndex();
+
+    if (!currentIndex.isValid() || currentIndex.data(Qt::UserRole + 1).toBool())
+        return {};
+
+    return currentIndex.data(Qt::UserRole).value<QFileInfo>();
+}
+
+int DirectoryWidget::filesCount() const
+{
+    // Non-root directories have [..].
+    return view()->model()->rowCount() - (view()->directory().isRoot() ? 0 : 1);
 }
 
 void DirectoryWidget::resizeEvent(QResizeEvent* event)

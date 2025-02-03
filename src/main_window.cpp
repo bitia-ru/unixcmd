@@ -132,18 +132,17 @@ void MainWindow::toggleActivePanel() {
 }
 
 void MainWindow::viewSelection() {
-    QList<QFileInfo> selectedFiles = this->selectedFiles();
+    const auto filesToCommand = this->filesToCommand();
 
-    if (selectedFiles.isEmpty())
+    if (filesToCommand.isEmpty())
         return;
 
     const auto viewProcess = new QProcess(this);
 
     QStringList files;
 
-    for (const auto& item : selectedFiles) {
+    for (const auto& item : filesToCommand)
         files << item.absoluteFilePath();
-    }
 
     if (QSysInfo::productType() == "macos") {
         viewProcess->setProgram("/usr/bin/qlmanage");
@@ -182,18 +181,17 @@ void MainWindow::viewSelection() {
 }
 
 void MainWindow::editSelection() {
-    QList<QFileInfo> selectedFiles = this->selectedFiles();
+    const auto filesToCommand = this->filesToCommand();
 
-    if (selectedFiles.isEmpty())
+    if (filesToCommand.isEmpty())
         return;
 
     auto viewProcess = new QProcess(this);
 
     QStringList files;
 
-    for (const auto& item : selectedFiles) {
+    for (const auto& item : filesToCommand)
         files << item.absoluteFilePath();
-    }
 
     const auto command = "vim " + files.join(' ');
 
@@ -208,15 +206,15 @@ void MainWindow::editSelection() {
 }
 
 void MainWindow::copySelection() {
-    QList<QFileInfo> selectedFiles = this->selectedFiles();
+    const auto filesToCommand = this->filesToCommand();
 
-    if (selectedFiles.isEmpty())
+    if (filesToCommand.isEmpty())
         return;
 
     auto copyDialog = new CopyDialog(
         this,
-        selectedFiles.size() == 1
-            ? destinationPanelWidget()->view()->directory().absoluteFilePath(selectedFiles.first().fileName())
+        filesToCommand.size() == 1
+            ? destinationPanelWidget()->view()->directory().absoluteFilePath(filesToCommand.first().fileName())
             : destinationPanelWidget()->view()->directory().absolutePath() + "/"
     );
     auto fileProcessingDialog = new FileProcessingDialog(this, "Copying files");
@@ -243,10 +241,10 @@ void MainWindow::copySelection() {
     });
 
     connect(copyDialog, &CopyDialog::accepted,
-        [this, selectedFiles, fileProcessingDialog, aborted, watcher](const QString& destination)
+        [this, filesToCommand, fileProcessingDialog, aborted, watcher](const QString& destination)
         {
             const auto future = QtConcurrent::run(
-                [this, destination, selectedFiles, fileProcessingDialog, aborted]() -> void
+                [this, destination, filesToCommand, fileProcessingDialog, aborted]() -> void
                 {
                     QMetaObject::invokeMethod(fileProcessingDialog, [fileProcessingDialog] { fileProcessingDialog->show(); });
 
@@ -314,7 +312,7 @@ void MainWindow::copySelection() {
                         ? QDir(destination)
                         : destinationInfo.dir();
 
-                    if (selectedFiles.size() > 1) {
+                    if (filesToCommand.size() > 1) {
                         if (!destination.endsWith("/")) {
                             QMessageBox::critical(
                                 nullptr,
@@ -325,7 +323,7 @@ void MainWindow::copySelection() {
                             return;
                         }
 
-                        for (const auto& file: selectedFiles)
+                        for (const auto& file : filesToCommand)
                             if (!copyFileRecursive(file, destinationDir.filePath(file.fileName()))) {
                                 QMessageBox::critical(
                                     nullptr,
@@ -336,7 +334,7 @@ void MainWindow::copySelection() {
                                 break;
                             }
                     } else {
-                        const auto& file = selectedFiles.first();
+                        const auto& file = filesToCommand.first();
                         const auto destinationFileName = endsWithSlash ? file.fileName() : destinationInfo.fileName();
                         if (!copyFileRecursive(file, destinationDir.filePath(destinationFileName)))
                             QMessageBox::critical(
@@ -384,15 +382,15 @@ void MainWindow::createDirectory()
 
 void MainWindow::removeSelected()
 {
-    QList<QFileInfo> selectedFiles = this->selectedFiles();
+    const auto filesToCommand = this->filesToCommand();
 
-    if (selectedFiles.isEmpty())
+    if (filesToCommand.isEmpty())
         return;
 
     const auto message = QString("Are you sure you want to delete %1?").arg(
-        selectedFiles.size() == 1
-            ? QString("file '%1'").arg(selectedFiles.first().fileName())
-            : QString("%1 files").arg(selectedFiles.count())
+        filesToCommand.size() == 1
+            ? QString("file '%1'").arg(filesToCommand.first().fileName())
+            : QString("%1 files").arg(filesToCommand.count())
     );
 
     const auto response = QMessageBox::question(
@@ -420,7 +418,7 @@ void MainWindow::removeSelected()
     };
 
     if (response == QMessageBox::Yes) {
-        for (const auto& fileInfo : selectedFiles) {
+        for (const auto& fileInfo : filesToCommand) {
             if (fileInfo.isFile() || fileInfo.isSymLink()) {
                 if (!removeFile(fileInfo))
                     break;
@@ -454,25 +452,16 @@ void MainWindow::toggleShowHiddenFiles() {
     activePanelWidget()->toggleShowHiddenFiles();
 }
 
-QList<QFileInfo> MainWindow::selectedFiles() const {
-    QList<QFileInfo> files;
+QList<QFileInfo> MainWindow::filesToCommand() const {
+    const auto selectedFiles = activePanelWidget()->selectedFiles();
 
-    for (const auto& index : activePanelWidget()->view()->selectionModel()->selectedRows()) {
-        if (index.data(Qt::UserRole + 1).toBool())
-            continue;
+    if (selectedFiles.count() > 0)
+        return selectedFiles;
 
-        files.append(index.data(Qt::UserRole).value<QFileInfo>());
-    }
+    const auto currentFile = activePanelWidget()->currentFile();
 
-    if (!files.isEmpty())
-        return files;
+    if (currentFile.has_value())
+        return {*currentFile, };
 
-    const auto currentIndex = activePanelWidget()->view()->currentIndex();
-
-    if (!currentIndex.isValid() || currentIndex.data(Qt::UserRole + 1).toBool())
-        return {};
-
-    const auto currentFileInfo = currentIndex.data(Qt::UserRole).value<QFileInfo>();
-
-    return {currentFileInfo, };
+    return {};
 }

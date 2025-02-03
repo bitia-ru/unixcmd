@@ -318,6 +318,20 @@ QDir DirectoryView::directory() const
     return d->directory;
 }
 
+void DirectoryView::setShowHiddenFiles(bool showHiddenFiles)
+{
+    if (d->showHiddenFiles != showHiddenFiles) {
+        d->showHiddenFiles = showHiddenFiles;
+
+        reload();
+    }
+}
+
+bool DirectoryView::hiddenFilesVisible() const
+{
+    return d->showHiddenFiles;
+}
+
 void DirectoryView::setQuickSearch(const QString& text)
 {
     d->quickSearch = text;
@@ -353,20 +367,6 @@ void DirectoryView::setQuickSearch(const QString& text)
     }
 
     d->quickSearchIndex = -1;
-}
-
-void DirectoryView::setShowHiddenFiles(bool showHiddenFiles)
-{
-    if (d->showHiddenFiles != showHiddenFiles) {
-        d->showHiddenFiles = showHiddenFiles;
-
-        reload();
-    }
-}
-
-bool DirectoryView::hiddenFilesVisible()
-{
-    return d->showHiddenFiles;
 }
 
 void DirectoryView::setSorting(SortType sortType)

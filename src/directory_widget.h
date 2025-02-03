@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QFileInfo>
 #include <QScopedPointer>
 #include <QWidget>
 
@@ -17,6 +18,11 @@ public:
     DirectoryView* view() const;
 
     void toggleShowHiddenFiles();
+
+    [[nodiscard]] QList<QFileInfo> selectedFiles() const;
+    std::optional<QFileInfo> currentFile() const;
+
+    int filesCount() const;
 
 private:
     void resizeEvent(QResizeEvent* event) override;

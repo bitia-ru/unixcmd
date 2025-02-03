@@ -42,7 +42,7 @@ private:
     void open(const QFileInfo& fileInfo);
     void toggleShowHiddenFiles();
 
-    [[nodiscard]] QList<QFileInfo> selectedFiles() const;
+    [[nodiscard]] QList<QFileInfo> filesToCommand() const;
 
 private:
     struct Private;

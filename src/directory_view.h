@@ -46,9 +46,10 @@ public:
     void setDirectory(const QDir& directory);
     [[nodiscard]] QDir directory() const;
 
-    void setQuickSearch(const QString& text);
     void setShowHiddenFiles(bool showHiddenFiles);
-    bool hiddenFilesVisible();
+    bool hiddenFilesVisible() const;
+
+    void setQuickSearch(const QString& text);
     void setSorting(SortType sortType);
     void setCurrentRow(int row);
 

@@ -24,12 +24,11 @@ CreateDirectoryDialog::CreateDirectoryDialog(QObject* parent) : d(new Private), 
     {
         switch (status) {
         case QQmlComponent::Error:
-            for (const QQmlError &error: d->component.errors()) {
+            for (const QQmlError &error: d->component.errors())
                 qDebug() << "QML Error:" << error.toString();
-            }
             break;
 
-        case QQmlComponent::Ready:
+        case QQmlComponent::Ready:{
             QObject* obj = d->component.create();
 
             if (obj) {
@@ -42,6 +41,9 @@ CreateDirectoryDialog::CreateDirectoryDialog(QObject* parent) : d(new Private), 
                     d->window = window;
                 }
             }
+        }
+
+        default:
         }
     });
 
