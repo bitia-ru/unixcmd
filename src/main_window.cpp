@@ -17,8 +17,6 @@
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QProcess>
-#include <QQuickWindow>
-#include <QSplitter>
 #include <QTableWidgetItem>
 #include <QtConcurrent/QtConcurrentRun>
 
@@ -35,11 +33,11 @@ MainWindow::MainWindow()
 {
     setWindowTitle("UnixCMD");
 
-    setContentsMargins(4, 0, 4, 0);
+    setContentsMargins(4, 0, 4, 6);
 
     qApp->installEventFilter(this);
 
-    auto splitter = new DoublePanelSplitter(this);
+    const auto splitter = new DoublePanelSplitter(this);
 
     setCentralWidget(splitter);
 
@@ -47,8 +45,9 @@ MainWindow::MainWindow()
     splitter->addWidget(d->rightPanel = new DirectoryWidget(splitter));
 
     connect(d->leftPanel->view(), &DirectoryView::focusIn, [this] { setActivePanel(LEFT); });
-    connect(d->rightPanel->view(), &DirectoryView::focusIn, [this] { setActivePanel(RIGHT); });
     connect(d->leftPanel->view(), &DirectoryView::fileTriggered, this, &MainWindow::open);
+
+    connect(d->rightPanel->view(), &DirectoryView::focusIn, [this] { setActivePanel(RIGHT); });
     connect(d->rightPanel->view(), &DirectoryView::fileTriggered, this, &MainWindow::open);
 
     resize(1024, 600);
@@ -140,8 +139,6 @@ void MainWindow::viewSelection() {
 
     const auto viewProcess = new QProcess(this);
 
-    QString command;
-
     QStringList files;
 
     for (const auto& item : selectedFiles) {
@@ -172,7 +169,11 @@ void MainWindow::viewSelection() {
         viewProcess,
         &QProcess::errorOccurred,
         [viewProcess](QProcess::ProcessError) {
-            QMessageBox::critical(nullptr, "Error", QString("Failed to view file(s): %1").arg(viewProcess->errorString()));
+            QMessageBox::critical(
+                nullptr,
+                "Error",
+                QString("Failed to view file(s): %1").arg(viewProcess->errorString())
+            );
             viewProcess->deleteLater();
         }
     );
@@ -256,7 +257,6 @@ void MainWindow::copySelection() {
                         });
 
                         if (file.isFile()) {
-                            qDebug() << "Copying file: " << file.absoluteFilePath() << " to " << destinationPath;
                             if (!QFile::copy(file.absoluteFilePath(), destinationPath)) {
                                 const auto selectedButton = QMessageBox::question(
                                     nullptr,
@@ -451,10 +451,7 @@ void MainWindow::open(const QFileInfo& fileInfo) {
 }
 
 void MainWindow::toggleShowHiddenFiles() {
-    d->showHiddenFiles = !d->showHiddenFiles;
-
-    d->leftPanel->view()->setShowHiddenFiles(d->showHiddenFiles);
-    d->rightPanel->view()->setShowHiddenFiles(d->showHiddenFiles);
+    activePanelWidget()->toggleShowHiddenFiles();
 }
 
 QList<QFileInfo> MainWindow::selectedFiles() const {

@@ -19,6 +19,8 @@ else()
       copy_dialog.h
       create_directory_dialog.cpp
       create_directory_dialog.h
+      directory_status_bar.cpp
+      directory_status_bar.h
       directory_view_style.cpp
       directory_view_style.h
       directory_view.cpp

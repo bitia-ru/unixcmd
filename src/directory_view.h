@@ -48,6 +48,7 @@ public:
 
     void setQuickSearch(const QString& text);
     void setShowHiddenFiles(bool showHiddenFiles);
+    bool hiddenFilesVisible();
     void setSorting(SortType sortType);
     void setCurrentRow(int row);
 

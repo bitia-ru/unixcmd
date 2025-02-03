@@ -16,6 +16,8 @@ public:
 
     DirectoryView* view() const;
 
+    void toggleShowHiddenFiles();
+
 private:
     void resizeEvent(QResizeEvent* event) override;
 

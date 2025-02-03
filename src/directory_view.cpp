@@ -8,8 +8,6 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMessageBox>
-#include <QMetaProperty>
-#include <QPainter>
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include <QTableView>
@@ -359,9 +357,16 @@ void DirectoryView::setQuickSearch(const QString& text)
 
 void DirectoryView::setShowHiddenFiles(bool showHiddenFiles)
 {
-    d->showHiddenFiles = showHiddenFiles;
+    if (d->showHiddenFiles != showHiddenFiles) {
+        d->showHiddenFiles = showHiddenFiles;
 
-    reload();
+        reload();
+    }
+}
+
+bool DirectoryView::hiddenFilesVisible()
+{
+    return d->showHiddenFiles;
 }
 
 void DirectoryView::setSorting(SortType sortType)

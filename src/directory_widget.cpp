@@ -1,10 +1,12 @@
 #include "directory_widget.h"
 
+#include "directory_status_bar.h"
 #include "directory_view.h"
 
 #include <QDir>
 #include <QLabel>
 #include <QVBoxLayout>
+
 
 struct PathComponent
 {
@@ -20,6 +22,7 @@ struct DirectoryWidget::Private
 {
     QLabel* title = nullptr;
     DirectoryView* view = nullptr;
+    DirectoryStatusBar* statusBar = nullptr;
 
     void setTitle(const QDir& dir)
     {
@@ -151,15 +154,17 @@ DirectoryWidget::DirectoryWidget(QWidget* parent)
     , d(new Private{
         .title = new QLabel("", this),
         .view = new DirectoryView(this),
+        .statusBar = new DirectoryStatusBar(this),
     })
 {
-    d->title->setFont(QFont("MesloLGS NF", 12));
     d->title->setTextFormat(Qt::MarkdownText);
     d->title->setContentsMargins(4, 0, 0, 0);
 
     auto layout = new QVBoxLayout(this);
+    layout->setSpacing(4);
     layout->addWidget(d->title);
     layout->addWidget(d->view);
+    layout->addWidget(d->statusBar);
     layout->setContentsMargins(0, 5, 0, 0);
     setLayout(layout);
 
@@ -174,6 +179,14 @@ DirectoryWidget::~DirectoryWidget() = default;
 DirectoryView* DirectoryWidget::view() const
 {
     return d->view;
+}
+
+void DirectoryWidget::toggleShowHiddenFiles()
+{
+    const bool newState = !d->view->hiddenFilesVisible();
+
+    d->view->setShowHiddenFiles(newState);
+    d->statusBar->setHiddenFilesVisible(newState);
 }
 
 void DirectoryWidget::resizeEvent(QResizeEvent* event)
