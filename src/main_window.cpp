@@ -467,5 +467,15 @@ QList<QFileInfo> MainWindow::selectedFiles() const {
         files.append(index.data(Qt::UserRole).value<QFileInfo>());
     }
 
-    return files;
+    if (!files.isEmpty())
+        return files;
+
+    const auto currentIndex = activePanelWidget()->view()->currentIndex();
+
+    if (!currentIndex.isValid() || currentIndex.data(Qt::UserRole + 1).toBool())
+        return {};
+
+    const auto currentFileInfo = currentIndex.data(Qt::UserRole).value<QFileInfo>();
+
+    return {currentFileInfo, };
 }
