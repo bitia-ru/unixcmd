@@ -179,10 +179,11 @@ DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Privat
 {
     d->model = new DirectorySortFilterProxyModel(this);
     d->model->setSourceModel(new DirectoryItemModel(0, 5, this));
-    setModel(d->model);
+    QTableView::setModel(d->model);
 
     setEditTriggers(SelectedClicked);
     setSelectionBehavior(SelectRows);
+    setSelectionMode(NoSelection);
 
     setStyle(new CustomStyle(style()));
 
@@ -248,7 +249,14 @@ bool DirectoryView::setDirectoryInternal(const QDir& dir, bool showHiddenFiles)
         extItem->setTextAlignment(Qt::AlignCenter);
         extItem->setEditable(false);
 
-        dynamic_cast<QStandardItemModel*>(d->model->sourceModel())->appendRow({item, extItem, fileSizeItemByEntry(QFileInfo(dir.absolutePath()))});
+        sourceModel()->appendRow({
+            item,
+            extItem,
+            fileSizeItemByEntry(QFileInfo(dir.absolutePath())),
+        });
+
+        for (int i = 0; i < d->model->columnCount(); i++)
+            sourceModel()->itemFromIndex(sourceModel()->index(0, i))->setSelectable(false);
     }
 
     QDir::Filters filters = QDir::AllEntries | QDir::NoDotAndDotDot | QDir::System;
@@ -289,7 +297,6 @@ bool DirectoryView::setDirectoryInternal(const QDir& dir, bool showHiddenFiles)
     return true;
 }
 
-
 void DirectoryView::setDirectory(const QDir& directory)
 {
     const QDir dir(QDir::cleanPath(directory.absolutePath()));
@@ -303,7 +310,7 @@ void DirectoryView::setDirectory(const QDir& directory)
     d->directory = dir;
 
     if (d->model->rowCount() > 0)
-        selectRow(0);
+        setCurrentRow(0);
 
     emit directoryChanged(d->directory);
 }
@@ -383,6 +390,15 @@ void DirectoryView::setSorting(SortType sortType)
     d->sortType = sortType;
 }
 
+void DirectoryView::setCurrentRow(int row)
+{
+    const auto newIndex = model()->index(row, 0);
+    if (!newIndex.isValid())
+        return;
+
+    selectionModel()->setCurrentIndex(newIndex, QItemSelectionModel::Rows);
+}
+
 void DirectoryView::reload()
 {
     setDirectory(d->directory);
@@ -422,29 +438,36 @@ void DirectoryView::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    if (event->key() == Qt::Key_Up) {
-        const auto index = currentIndex();
-        selectionModel()->setCurrentIndex(index.sibling(index.row()-1, 0), QItemSelectionModel::Rows | QItemSelectionModel::NoUpdate);
+    if (d->model->rowCount() > 0) {
+        if (event->key() == Qt::Key_Up) {
+            if (const auto index = currentIndex(); !index.isValid())
+                setCurrentRow(0);
+            else if (index.row() > 0)
+                setCurrentRow(index.row() - 1);
 
-        event->accept();
-        return;
-    }
+            event->accept();
+            return;
+        }
 
-    if (event->key() == Qt::Key_Down) {
-        const auto index = currentIndex();
-        selectionModel()->setCurrentIndex(index.sibling(index.row()+1, 0), QItemSelectionModel::Rows | QItemSelectionModel::NoUpdate);
+        if (event->key() == Qt::Key_Down) {
+            if (const auto index = currentIndex(); !index.isValid())
+                setCurrentRow(d->model->rowCount() - 1);
+            else if (index.row() < d->model->rowCount() - 1)
+                setCurrentRow(index.row() + 1);
 
-        event->accept();
-        return;
-    }
+            event->accept();
+            return;
+        }
 
-    if (event->key() == Qt::Key_Space) {
-        qDebug() << currentIndex().row();
-        qDebug() << selectionModel()->selectedRows();
-        selectionModel()->select(currentIndex().siblingAtRow(currentIndex().row()), QItemSelectionModel::Rows | QItemSelectionModel::Toggle);
+        if (event->key() == Qt::Key_Space) {
+            selectionModel()->select(
+                currentIndex(),
+                QItemSelectionModel::Rows | QItemSelectionModel::Toggle
+            );
 
-        event->accept();
-        return;
+            event->accept();
+            return;
+        }
     }
 
     QTableView::keyPressEvent(event);
@@ -457,16 +480,24 @@ void DirectoryView::focusInEvent(QFocusEvent* event)
     emit focusIn();
 }
 
+void DirectoryView::mousePressEvent(QMouseEvent* event)
+{
+    if (event->button() == Qt::RightButton) {
+        if (const QModelIndex index = indexAt(event->pos()); index.isValid()) {
+            selectionModel()->select(
+                index,
+                QItemSelectionModel::Rows | QItemSelectionModel::Toggle
+            );
+            setCurrentRow(index.row());
+        }
+    }
+
+    QTableView::mousePressEvent(event);
+}
+
 void DirectoryView::selectionChanged(const QItemSelection& selected, const QItemSelection& deselected)
 {
     QTableView::selectionChanged(selected, deselected);
-
-    if (selectionModel()->selectedRows().count() == 0) {
-        if (deselected.count() > 0)
-            selectRow(deselected.indexes().first().row());
-        else
-            selectRow(0);
-    }
 
     for (const auto& index : deselected.indexes()) {
         if (index.row() == d->quickSearchIndex) {
@@ -474,4 +505,9 @@ void DirectoryView::selectionChanged(const QItemSelection& selected, const QItem
             break;
         }
     }
+}
+
+QStandardItemModel* DirectoryView::sourceModel()
+{
+    return dynamic_cast<QStandardItemModel*>(d->model->sourceModel());
 }

@@ -49,6 +49,7 @@ public:
     void setQuickSearch(const QString& text);
     void setShowHiddenFiles(bool showHiddenFiles);
     void setSorting(SortType sortType);
+    void setCurrentRow(int row);
 
 public slots:
     void reload();
@@ -56,7 +57,11 @@ public slots:
 private:
     void keyPressEvent(QKeyEvent *event) override;
     void focusInEvent(QFocusEvent *event) override;
+    void mousePressEvent(QMouseEvent* event) override;
+
     void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) override;
+
+    QStandardItemModel* sourceModel();
 
 signals:
     void directoryChanged(const QDir& directory);

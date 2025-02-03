@@ -10,6 +10,10 @@ class CustomStyle : public QProxyStyle
 public:
     explicit CustomStyle(QStyle *baseStyle = nullptr) : QProxyStyle(baseStyle) {}
 
-    void drawPrimitive(QStyle::PrimitiveElement element, const QStyleOption *option,
-                       QPainter *painter, const QWidget *widget = nullptr) const override;
+    void drawPrimitive(
+        PrimitiveElement element,
+        const QStyleOption *option,
+        QPainter *painter,
+        const QWidget* widget = nullptr
+    ) const override;
 };

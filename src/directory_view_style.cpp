@@ -4,27 +4,31 @@
 #include <QItemSelectionModel>
 
 
-void CustomStyle::drawPrimitive(QStyle::PrimitiveElement element, const QStyleOption *option,
-                                QPainter *painter, const QWidget *widget) const {
-    if (element == QStyle::PE_PanelItemViewRow) {
-        if (const QStyleOptionViewItem *vopt = qstyleoption_cast<const QStyleOptionViewItem*>(option)) {
-            bool isEnabled = (widget ? widget->isEnabled() : (vopt->state & QStyle::State_Enabled));
-            QPalette::ColorGroup cg = isEnabled ? QPalette::Normal : QPalette::Disabled;
+void CustomStyle::drawPrimitive(
+    PrimitiveElement element,
+    const QStyleOption* option,
+    QPainter* painter,
+    const QWidget* widget
+) const
+{
+    if (element == PE_FrameFocusRect) {
+        Q_ASSERT(widget);
 
-            if (cg == QPalette::Normal && !(vopt->state & QStyle::State_Active))
-                cg = QPalette::Inactive;
+        const auto frameOption = qstyleoption_cast<const QStyleOptionFocusRect*>(option);
+        Q_ASSERT(frameOption);
 
-            if (vopt->state & QStyle::State_HasFocus)
-                painter->fillRect(vopt->rect, QBrush(QColor(255, 255, 0, 128)));
-            else if ((vopt->state & QStyle::State_Selected) && proxy()->styleHint(QStyle::SH_ItemView_ShowDecorationSelected, option, widget))
-                painter->fillRect(vopt->rect, vopt->palette.brush(cg, QPalette::Highlight));
-            else if (vopt->features & QStyleOptionViewItem::Alternate)
-                painter->fillRect(vopt->rect, vopt->palette.brush(cg, QPalette::AlternateBase));
-        }
+        const QPalette::ColorGroup cg = widget->isEnabled() ? QPalette::Normal : QPalette::Disabled;
+
+        const auto pen = painter->pen();
+        auto color = frameOption->palette.brush(cg, QPalette::Text).color();
+        color.setAlphaF(0.5);
+        painter->setClipping(false);
+        painter->setPen(QPen(color, 2, Qt::DotLine));
+        painter->drawRect(frameOption->rect);
+        painter->setPen(pen);
 
         return;
     }
 
-    // В остальных случаях рисуем стандартный стиль
     QProxyStyle::drawPrimitive(element, option, painter, widget);
 }

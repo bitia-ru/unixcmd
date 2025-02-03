@@ -460,8 +460,12 @@ void MainWindow::toggleShowHiddenFiles() {
 QList<QFileInfo> MainWindow::selectedFiles() const {
     QList<QFileInfo> files;
 
-    for (const auto& index : activePanelWidget()->view()->selectionModel()->selectedRows())
+    for (const auto& index : activePanelWidget()->view()->selectionModel()->selectedRows()) {
+        if (index.data(Qt::UserRole + 1).toBool())
+            continue;
+
         files.append(index.data(Qt::UserRole).value<QFileInfo>());
+    }
 
     return files;
 }
