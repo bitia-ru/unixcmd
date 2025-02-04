@@ -47,7 +47,7 @@ CopyDialog::CopyDialog(QObject* parent, const QString& destination) : d(new Priv
             }
         }
 
-        default:
+        default:;
         }
     });
 

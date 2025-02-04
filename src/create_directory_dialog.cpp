@@ -43,7 +43,7 @@ CreateDirectoryDialog::CreateDirectoryDialog(QObject* parent) : d(new Private), 
             }
         }
 
-        default:
+        default:;
         }
     });
 

@@ -44,7 +44,7 @@ FileProcessingDialog::FileProcessingDialog(QObject* parent, const QString& title
             }
         }
 
-        default:
+        default:;
         }
     });
 

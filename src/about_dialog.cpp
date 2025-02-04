@@ -47,7 +47,7 @@ AboutDialog::AboutDialog(QObject* parent) : d(new Private), QObject(parent)
             }
         }
 
-        default:
+        default:;
         }
     });
 
