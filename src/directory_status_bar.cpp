@@ -21,6 +21,7 @@ DirectoryStatusBar::DirectoryStatusBar(QObject* parent)
         .hiddenFilesLabel = new QLabel(this),
     })
 {
+    setSizeGripEnabled(false);
     setContentsMargins(0, 2, 0, 2);
 
     const QFontMetrics metrics(d->hiddenFilesLabel->font());

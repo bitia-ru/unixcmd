@@ -218,12 +218,15 @@ DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Privat
     connect(this, &QTableView::activated, onCellEntered);
 
     connect(horizontalHeader(), &QHeaderView::sectionClicked, [this](int column) {
-        setSorting(static_cast<SortType>(column));
+        const auto newSortType = static_cast<SortType>(column);
+        const bool ascending = d->sortType == newSortType ? !d->sortAscending : true;
+
+        setSorting(newSortType, ascending);
     });
 
-    setSorting(d->sortType);
+    updateSorting();
 
-    connect(d->model, &QAbstractItemModel::dataChanged, [this] { setSorting(d->sortType); });
+    connect(d->model, &QAbstractItemModel::dataChanged, [this] { updateSorting(); });
 }
 
 DirectoryView::~DirectoryView() = default;
@@ -291,6 +294,8 @@ bool DirectoryView::setDirectoryInternal(const QDir& dir, bool showHiddenFiles)
 
         dynamic_cast<QStandardItemModel*>(d->model->sourceModel())->appendRow(items);
     }
+
+    updateSorting();
 
     return true;
 }
@@ -369,32 +374,6 @@ void DirectoryView::setQuickSearch(const QString& text)
     d->quickSearchIndex = -1;
 }
 
-void DirectoryView::setSorting(SortType sortType)
-{
-    setSortingEnabled(true);
-
-    switch (sortType) {
-    case SortByName:
-        if (d->sortType == SortByName)
-            d->sortAscending = !d->sortAscending;
-        sortByColumn(0, d->sortAscending ? Qt::AscendingOrder : Qt::DescendingOrder);
-        break;
-    case SortByExtension:
-        if (d->sortType == SortByExtension)
-            d->sortAscending = !d->sortAscending;
-        sortByColumn(1, d->sortAscending ? Qt::AscendingOrder : Qt::DescendingOrder);
-        break;
-    case SortBySize:
-        if (d->sortType == SortBySize)
-            d->sortAscending = !d->sortAscending;
-        sortByColumn(2, d->sortAscending ? Qt::AscendingOrder : Qt::DescendingOrder);
-        break;
-    default:
-        setSortingEnabled(false);
-    }
-    d->sortType = sortType;
-}
-
 void DirectoryView::setCurrentRow(int row)
 {
     const auto newIndex = model()->index(row, 0);
@@ -402,6 +381,33 @@ void DirectoryView::setCurrentRow(int row)
         return;
 
     selectionModel()->setCurrentIndex(newIndex, QItemSelectionModel::Rows);
+}
+
+void DirectoryView::setSorting(SortType sortType, bool ascending)
+{
+    setSortingEnabled(true);
+
+    switch (sortType) {
+    case SortByName:
+        sortByColumn(0, d->sortAscending ? Qt::AscendingOrder : Qt::DescendingOrder);
+        break;
+    case SortByExtension:
+        sortByColumn(1, d->sortAscending ? Qt::AscendingOrder : Qt::DescendingOrder);
+        break;
+    case SortBySize:
+        sortByColumn(2, d->sortAscending ? Qt::AscendingOrder : Qt::DescendingOrder);
+        break;
+    default:
+        setSortingEnabled(false);
+    }
+
+    d->sortType = sortType;
+    d->sortAscending = ascending;
+}
+
+void DirectoryView::updateSorting()
+{
+    setSorting(d->sortType, d->sortAscending);
 }
 
 void DirectoryView::reload()

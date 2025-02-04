@@ -50,8 +50,10 @@ public:
     bool hiddenFilesVisible() const;
 
     void setQuickSearch(const QString& text);
-    void setSorting(SortType sortType);
     void setCurrentRow(int row);
+
+    void setSorting(SortType sortType, bool ascending);
+    void updateSorting();
 
 public slots:
     void reload();
