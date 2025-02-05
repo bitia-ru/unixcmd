@@ -22,7 +22,7 @@ DirectoryStatusBar::DirectoryStatusBar(QObject* parent)
     })
 {
     setSizeGripEnabled(false);
-    setContentsMargins(0, 2, 0, 2);
+    setContentsMargins(0, 2, 4, 2);
 
     const QFontMetrics metrics(d->hiddenFilesLabel->font());
     const auto rect = metrics.boundingRect(

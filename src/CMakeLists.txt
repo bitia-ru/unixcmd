@@ -19,12 +19,14 @@ else()
       copy_dialog.h
       create_directory_dialog.cpp
       create_directory_dialog.h
+      directory_model.cpp
+      directory_model.h
       directory_status_bar.cpp
       directory_status_bar.h
-      directory_view_style.cpp
-      directory_view_style.h
       directory_view.cpp
       directory_view.h
+      directory_view_style.cpp
+      directory_view_style.h
       directory_widget.cpp
       directory_widget.h
       double_panel_splitter.cpp

@@ -1,4 +1,5 @@
 #include "directory_view.h"
+#include "directory_model.h"
 #include "directory_view_style.h"
 
 #include <QDir>
@@ -11,6 +12,7 @@
 #include <QStandardItem>
 #include <QStandardItemModel>
 #include <QTableView>
+#include <QTimer>
 
 
 namespace {
@@ -81,83 +83,6 @@ QStandardItem* attrItemByEntry(const QFileInfo& entry)
 
 }
 
-DirectorySortFilterProxyModel::DirectorySortFilterProxyModel(QObject* parent/* = nullptr*/)
-    : QSortFilterProxyModel(parent)
-{
-}
-
-bool DirectorySortFilterProxyModel::lessThan(const QModelIndex& left, const QModelIndex& right) const
-{
-    const auto leftFirstColumnIndex = sourceModel()->index(left.row(), 0);
-    const auto rightFirstColumnIndex = sourceModel()->index(right.row(), 0);
-
-    const auto leftData = sourceModel()->data(leftFirstColumnIndex, Qt::UserRole).value<QFileInfo>();
-    const auto rightData = sourceModel()->data(rightFirstColumnIndex, Qt::UserRole).value<QFileInfo>();
-
-    const auto leftDotDotDirIndicator = sourceModel()->data(leftFirstColumnIndex, Qt::UserRole + 1);
-    const auto rightDotDotDirIndicator = sourceModel()->data(rightFirstColumnIndex, Qt::UserRole + 1);
-
-    if (leftDotDotDirIndicator.toBool())
-        return sortOrder() == Qt::AscendingOrder;
-    if (rightDotDotDirIndicator.toBool())
-        return sortOrder() == Qt::DescendingOrder;
-
-    if (const int column = left.column(); column == 0)
-        return leftData.fileName().toLower() < rightData.fileName().toLower();
-    else if (column == 1) {
-        if (leftData.isDir())
-            return false;
-        if (rightData.isDir())
-            return true;
-
-        return leftData.suffix() < rightData.suffix();
-    }
-
-    return QSortFilterProxyModel::lessThan(left, right);
-}
-
-QVariant DirectoryItemModel::data(const QModelIndex &index, const int role/* = Qt::DisplayRole*/) const
-{
-    if (index.column() == 0 && role == Qt::EditRole) {
-        const auto fileInfo = QStandardItemModel::data(index, Qt::UserRole).value<QFileInfo>();
-
-        return fileInfo.fileName();
-    }
-
-    return QStandardItemModel::data(index, role);
-}
-
-bool DirectoryItemModel::setData(const QModelIndex& index, const QVariant& value, int role)
-{
-    if (index.column() == 0 && role == Qt::EditRole) {
-        const auto newFileName = value.toString();
-        const auto originalFileInfo = QStandardItemModel::data(index, Qt::UserRole).value<QFileInfo>();
-        const QFileInfo newFileInfo(originalFileInfo.absoluteDir().filePath(newFileName));
-
-        if (originalFileInfo.fileName() != newFileName && !originalFileInfo.dir().rename(originalFileInfo.fileName(), newFileName)) {
-            QMessageBox::critical(nullptr, "Error", "Can't rename file");
-
-            return false;
-        }
-
-        QStandardItemModel::setData(index, QVariant::fromValue(newFileInfo), Qt::UserRole);
-
-        if (newFileInfo.isDir())
-            QStandardItemModel::setData(index, newFileInfo.fileName(), Qt::DisplayRole);
-        else {
-            QStandardItemModel::setData(index, newFileInfo.baseName(), Qt::DisplayRole);
-            QStandardItemModel::setData(
-                DirectoryItemModel::index(index.row(), 1),
-                newFileInfo.suffix(),
-                Qt::DisplayRole
-            );
-        }
-
-        return true;
-    }
-
-    return QStandardItemModel::setData(index, value, role);
-}
 
 struct DirectoryView::Private
 {
@@ -201,9 +126,10 @@ DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Privat
     setDirectory(QDir::currentPath());
 
     const auto onCellEntered = [this](const QModelIndex& index) {
-        const auto fileNameIndex = d->model->index(index.row(), 0);
+        const auto fileNameIndex = DirectoryModelIndex(d->model->index(index.row(), 0));
 
-        if (const auto fileInfo = d->model->data(fileNameIndex, Qt::UserRole).value<QFileInfo>(); fileInfo.isDir()) {
+        if (const auto fileInfo = *fileNameIndex.fileInfo(); fileInfo.isDir())
+        {
             if (!fileInfo.absoluteDir().isReadable()) {
                 QMessageBox::critical(this, "Error", "Can't open directory: permission denied");
                 return;
@@ -227,78 +153,34 @@ DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Privat
     updateSorting();
 
     connect(d->model, &QAbstractItemModel::dataChanged, [this] { updateSorting(); });
+
+    connect(
+        selectionModel(),
+        &QItemSelectionModel::selectionChanged,
+        [this](const QItemSelection& selected, const QItemSelection& deselected) {
+            // TODO: trigger directory size calculations.
+            for (const auto index : selected.indexes()) {
+                if (index.column() > 0)
+                    continue;
+
+                const auto directoryModelIndex = DirectoryModelIndex(index);
+
+                if (!directoryModelIndex.fileInfo()->isDir())
+                    continue;
+
+                DirectoryModelIndex::SizeCalculationInfo info{
+                    .inProgress = true,
+                    .currentSizeInBytes = 100400,
+                };
+
+                model()->setData(directoryModelIndex, QVariant::fromValue(info),
+                    DirectoryModelIndex::SizeCalculationInfoRole);
+            }
+        }
+    );
 }
 
 DirectoryView::~DirectoryView() = default;
-
-bool DirectoryView::setDirectoryInternal(const QDir& dir, bool showHiddenFiles)
-{
-    d->model->removeRows(0, d->model->rowCount());
-
-    if (!dir.exists())
-        return false;
-
-    if (!dir.isRoot()) {
-        const auto item = new QStandardItem("[..]");
-        const auto parentDirPath = QDir::cleanPath(QFileInfo(dir.absolutePath()).dir().absolutePath());
-        item->setData(QVariant::fromValue(QFileInfo(parentDirPath)), Qt::UserRole);
-        item->setData(QVariant::fromValue(true), Qt::UserRole + 1);
-        item->setFlags(item->flags() & ~Qt::ItemIsEditable);
-        item->setIcon(QFileIconProvider().icon(QAbstractFileIconProvider::Folder));
-
-        const auto extItem = new QStandardItem("");
-        extItem->setTextAlignment(Qt::AlignCenter);
-        extItem->setEditable(false);
-
-        sourceModel()->appendRow({
-            item,
-            extItem,
-            fileSizeItemByEntry(QFileInfo(dir.absolutePath())),
-        });
-
-        for (int i = 0; i < d->model->columnCount(); i++)
-            sourceModel()->itemFromIndex(sourceModel()->index(0, i))->setSelectable(false);
-    }
-
-    QDir::Filters filters = QDir::AllEntries | QDir::NoDotAndDotDot | QDir::System;
-
-    if (showHiddenFiles)
-        filters |= QDir::Hidden;
-
-    for (const auto& entry : dir.entryInfoList(filters))
-    {
-        QList<QStandardItem*> items;
-
-        const auto fileEntry = new QStandardItem(fileNameByEntry(entry));
-        fileEntry->setData(QVariant::fromValue(entry), Qt::UserRole);
-        fileEntry->setEditable(true);
-
-        if (QIcon icon = QFileIconProvider().icon(entry); !icon.isNull())
-            fileEntry->setIcon(icon);
-
-        items.append(fileEntry);
-
-        const auto extItem = new QStandardItem(entry.isDir() ? "" : entry.suffix());
-        extItem->setTextAlignment(Qt::AlignCenter);
-        extItem->setEditable(false);
-        items.append(extItem);
-
-        items.append(fileSizeItemByEntry(entry));
-
-        auto dateItem = new QStandardItem(entry.lastModified().toString("dd/MM/yy hh:mm"));
-        dateItem->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-        dateItem->setEditable(false);
-        items.append(dateItem);
-
-        items.append(attrItemByEntry(entry));
-
-        dynamic_cast<QStandardItemModel*>(d->model->sourceModel())->appendRow(items);
-    }
-
-    updateSorting();
-
-    return true;
-}
 
 void DirectoryView::setDirectory(const QDir& directory)
 {
@@ -374,7 +256,7 @@ void DirectoryView::setQuickSearch(const QString& text)
     d->quickSearchIndex = -1;
 }
 
-void DirectoryView::setCurrentRow(int row)
+void DirectoryView::setCurrentRow(int row) const
 {
     const auto newIndex = model()->index(row, 0);
     if (!newIndex.isValid())
@@ -537,7 +419,76 @@ void DirectoryView::selectionChanged(const QItemSelection& selected, const QItem
     }
 }
 
-QStandardItemModel* DirectoryView::sourceModel()
+bool DirectoryView::setDirectoryInternal(const QDir& dir, bool showHiddenFiles)
+{
+    d->model->removeRows(0, d->model->rowCount());
+
+    if (!dir.exists())
+        return false;
+
+    if (!dir.isRoot()) {
+        const auto item = new QStandardItem("[..]");
+        const auto parentDirPath = QDir::cleanPath(QFileInfo(dir.absolutePath()).dir().absolutePath());
+        item->setData(QVariant::fromValue(QFileInfo(parentDirPath)), Qt::UserRole);
+        item->setData(QVariant::fromValue(true), Qt::UserRole + 1);
+        item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+        item->setIcon(QFileIconProvider().icon(QAbstractFileIconProvider::Folder));
+
+        const auto extItem = new QStandardItem("");
+        extItem->setTextAlignment(Qt::AlignCenter);
+        extItem->setEditable(false);
+
+        sourceModel()->appendRow({
+            item,
+            extItem,
+            fileSizeItemByEntry(QFileInfo(dir.absolutePath())),
+        });
+
+        for (int i = 0; i < d->model->columnCount(); i++)
+            sourceModel()->itemFromIndex(sourceModel()->index(0, i))->setSelectable(false);
+    }
+
+    QDir::Filters filters = QDir::AllEntries | QDir::NoDotAndDotDot | QDir::System;
+
+    if (showHiddenFiles)
+        filters |= QDir::Hidden;
+
+    for (const auto& entry : dir.entryInfoList(filters))
+    {
+        QList<QStandardItem*> items;
+
+        const auto fileEntry = new QStandardItem(fileNameByEntry(entry));
+        fileEntry->setData(QVariant::fromValue(entry), Qt::UserRole);
+        fileEntry->setEditable(true);
+
+        if (QIcon icon = QFileIconProvider().icon(entry); !icon.isNull())
+            fileEntry->setIcon(icon);
+
+        items.append(fileEntry);
+
+        const auto extItem = new QStandardItem(entry.isDir() ? "" : entry.suffix());
+        extItem->setTextAlignment(Qt::AlignCenter);
+        extItem->setEditable(false);
+        items.append(extItem);
+
+        items.append(fileSizeItemByEntry(entry));
+
+        auto dateItem = new QStandardItem(entry.lastModified().toString("dd/MM/yy hh:mm"));
+        dateItem->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        dateItem->setEditable(false);
+        items.append(dateItem);
+
+        items.append(attrItemByEntry(entry));
+
+        dynamic_cast<QStandardItemModel*>(d->model->sourceModel())->appendRow(items);
+    }
+
+    updateSorting();
+
+    return true;
+}
+
+QStandardItemModel* DirectoryView::sourceModel() const
 {
     return dynamic_cast<QStandardItemModel*>(d->model->sourceModel());
 }
