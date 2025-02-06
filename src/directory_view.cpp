@@ -13,6 +13,7 @@
 #include <QStandardItemModel>
 #include <QTableView>
 #include <QTimer>
+#include <QtConcurrent/QtConcurrentRun>
 
 
 namespace {
@@ -164,17 +165,47 @@ DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Privat
                     continue;
 
                 const auto directoryModelIndex = DirectoryModelIndex(index);
+                const auto fileInfo = *directoryModelIndex.fileInfo();
 
-                if (!directoryModelIndex.fileInfo()->isDir())
+                if (!fileInfo.isDir())
                     continue;
 
                 DirectoryModelIndex::SizeCalculationInfo info{
                     .inProgress = true,
-                    .currentSizeInBytes = 100400,
                 };
 
                 model()->setData(directoryModelIndex, QVariant::fromValue(info),
                     DirectoryModelIndex::SizeCalculationInfoRole);
+
+                QtConcurrent::run([this, directoryModelIndex, fileInfo] {
+                    const std::function<qint64(const QFileInfo&)> calculateRecursive =
+                        [this, &calculateRecursive](const QFileInfo& file) -> qint64
+                        {
+                            qint64 result = 0;
+
+                            if (file.isDir()) {
+                                const auto& dirFiles = QDir(file.absoluteFilePath())
+                                    .entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
+
+                                for (const auto& subFile: dirFiles)
+                                    result += calculateRecursive(subFile);
+                            } else {
+                                result += file.size();
+                            }
+
+                            return result;
+                        };
+
+                    const auto dirSize = calculateRecursive(fileInfo);
+
+                    DirectoryModelIndex::SizeCalculationInfo info{
+                        .inProgress = false,
+                        .currentSizeInBytes = dirSize,
+                    };
+
+                    model()->setData(directoryModelIndex, QVariant::fromValue(info),
+                        DirectoryModelIndex::SizeCalculationInfoRole);
+                });
             }
         }
     );

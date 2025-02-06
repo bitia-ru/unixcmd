@@ -11,7 +11,7 @@ public:
     struct SizeCalculationInfo
     {
         bool inProgress = true;
-        size_t currentSizeInBytes = -1;
+        qint64 currentSizeInBytes = -1;
     };
 
     enum DirectoryItemRole
