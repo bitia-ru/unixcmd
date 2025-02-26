@@ -1,0 +1,51 @@
+name: Build the application
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2019]
+
+    name: build-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up python venv
+        run: |
+          python -m venv ${{ github.workspace }}\venv
+          ${{ github.workspace }}\venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip
+          python -m pip install conan==1.66.0
+
+      - name: Specify conan remotes
+        run: |
+          ${{ github.workspace }}\venv\Scripts\Activate.ps1
+          conan remote add peclet http://conan.kpas.alev.pro False
+
+      - name: Make build directory
+        run: mkdir build
+
+      - name: Install dependencies
+        working-directory: ./build
+        run: |
+          ${{ github.workspace }}\venv\Scripts\Activate.ps1
+          conan install ..
+
+      - name: Build the application
+        working-directory: ./build
+        run: |
+          ${{ github.workspace }}\venv\Scripts\Activate.ps1
+          conan build ..
