@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04]
+        os: [macos-14]
 
     name: build-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -22,10 +22,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Prepare Ubuntu
-        run: |
-          sudo apt update -y && sudo apt install libegl1-mesa-dev libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libx11-xcb-dev libx11-xcb-dev libxcb*-dev libxkbcommon-dev libxkbcommon-x11-dev mesa-common-dev
 
       - name: Set up python venv
         run: |
@@ -46,7 +42,7 @@ jobs:
         working-directory: ./build
         run: |
           source ${GITHUB_WORKSPACE}/.venv/bin/activate
-          conan install .. -s compiler.version=9
+          conan install .. -s compiler.version=14.0
 
       - name: Build the application
         working-directory: ./build

@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04]
+        os: [windows-2019]
 
     name: build-${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -23,20 +23,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Prepare Ubuntu
-        run: |
-          sudo apt update -y && sudo apt install libegl1-mesa-dev libgl1-mesa-dev libglu1-mesa-dev libwayland-dev libx11-xcb-dev libx11-xcb-dev libxcb*-dev libxkbcommon-dev libxkbcommon-x11-dev mesa-common-dev
-
       - name: Set up python venv
         run: |
-          python -m venv ${GITHUB_WORKSPACE}/.venv
-          source ${GITHUB_WORKSPACE}/.venv/bin/activate
-          pip install --upgrade pip
-          pip install conan==1.66.0 ninja
+          python -m venv ${{ github.workspace }}\venv
+          ${{ github.workspace }}\venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip
+          python -m pip install conan==1.66.0
 
       - name: Specify conan remotes
         run: |
-          source ${GITHUB_WORKSPACE}/.venv/bin/activate
+          ${{ github.workspace }}\venv\Scripts\Activate.ps1
           conan remote add peclet http://conan.kpas.alev.pro False
 
       - name: Make build directory
@@ -45,11 +41,11 @@ jobs:
       - name: Install dependencies
         working-directory: ./build
         run: |
-          source ${GITHUB_WORKSPACE}/.venv/bin/activate
-          conan install .. -s compiler.version=9
+          ${{ github.workspace }}\venv\Scripts\Activate.ps1
+          conan install ..
 
       - name: Build the application
         working-directory: ./build
         run: |
-          source ${GITHUB_WORKSPACE}/.venv/bin/activate
+          ${{ github.workspace }}\venv\Scripts\Activate.ps1
           conan build ..
