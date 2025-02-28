@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master
+      - release/*
+    tags:
+      - 'v*'
 
 jobs:
   build:
@@ -16,12 +19,23 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Retrieve the version
+        id: gitver
+        run: |
+          echo "app_version=$(git describe --abbrev=4)" >> $GITHUB_OUTPUT
+
+      - name: Prepare macOS
+        run: |
+          brew install tree
 
       - name: Set up python venv
         run: |
@@ -36,7 +50,7 @@ jobs:
           conan remote add peclet http://conan.kpas.alev.pro False
 
       - name: Make build directory
-        run: mkdir build
+        run: mkdir build && mkdir unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
 
       - name: Install dependencies
         working-directory: ./build
@@ -49,3 +63,44 @@ jobs:
         run: |
           source ${GITHUB_WORKSPACE}/.venv/bin/activate
           conan build ..
+          tree .
+          otool -L ./bin/unixcmd.app/Contents/MacOS/unixcmd
+
+      - name: Generate package
+        run: |
+          source ${GITHUB_WORKSPACE}/.venv/bin/activate
+          conan package -bf ./build -pf ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }} .
+          tree ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
+
+      - name: Zipping package
+        run: |
+          tar -cJvf \
+            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz \
+            --exclude 'conaninfo.txt' \
+            --exclude 'conanmanifest.txt' \
+            ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
+
+      - name: Uploading archive
+        uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref_name, 'release/') && github.ref_type != 'tag' }}
+        with:
+          name: unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
+          path: unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
+          compression-level: 0
+
+      - name: Publish prerelease
+        uses: softprops/action-gh-release@v2
+        if: ${{ startsWith(github.ref_name, 'release/') }}
+        with:
+          prerelease: true
+          draft: true
+          name: "Release candidate ${{ steps.gitver.outputs.app_version }}"
+          files:
+            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        if: ${{ github.ref_type == 'tag' }}
+        with:
+          files:
+            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
