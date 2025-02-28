@@ -50,7 +50,7 @@ struct DirectoryWidget::Private
 
         const QFontMetrics metrics(title->font());
 
-        const auto resultPathPlainText = [&resultComponents] -> QString {
+        const auto resultPathPlainText = [&resultComponents] () -> QString {
             QStringList resultPathComponents;
 
             for (const auto& component : resultComponents) {
@@ -66,7 +66,7 @@ struct DirectoryWidget::Private
             return resultPathComponents.join("/");
         };
 
-        const auto textRect = [this, &resultPathPlainText, &metrics] -> QRect {
+        const auto textRect = [this, &resultPathPlainText, &metrics] () -> QRect {
             return metrics.boundingRect(
                 QRect(0, 0, title->width(), title->height()),
                 Qt::TextSingleLine,
@@ -75,7 +75,7 @@ struct DirectoryWidget::Private
         };
 
          while (textRect().width() > title->width() - 10) {
-            const auto findComponentToShorten = [&resultComponents] -> int {
+            const auto findComponentToShorten = [&resultComponents] () -> int {
                 int i = 0;
                 int middleIndex = resultComponents.count() / 2;
                 const auto component = resultComponents.at(middleIndex);
