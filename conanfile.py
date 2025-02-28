@@ -35,6 +35,14 @@ class QtUnixCmdConan(ConanFile):
     def package(self):
         self.cmake.install()
 
+        #if self.settings.os == 'Linux':
+        #    tools.remove_files_by_mask(f'{self.package_folder}/lib', 'libglib*.so*')
+
+    def imports(self):
+        self.copy('*.dll', dst='bin', src='bin')
+        self.copy('*.dylib', dst='bin', src='lib')
+        self.copy('*.so', dst='bin', src='lib')
+
     @property
     def cmake(self):
         generator = 'Xcode' if self.settings.os == 'iOS' else 'Ninja'
