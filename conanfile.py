@@ -1,6 +1,7 @@
 from conans import ConanFile, CMake, tools, __version__ as conan_version
+from conans.client.api.conan_api import Conan
 
-assert conan_version >= tools.Version('1.35'), 'Conan version is too old.'
+assert conan_version >= tools.Version('1.66'), 'Conan version is too old.'
 
 
 class QtUnixCmdConan(ConanFile):
@@ -35,9 +36,6 @@ class QtUnixCmdConan(ConanFile):
     def package(self):
         self.cmake.install()
 
-        #if self.settings.os == 'Linux':
-        #    tools.remove_files_by_mask(f'{self.package_folder}/lib', 'libglib*.so*')
-
     def imports(self):
         self.copy('*.dll', dst='bin', src='bin')
         self.copy('*.dylib', dst='bin', src='lib')
@@ -47,7 +45,8 @@ class QtUnixCmdConan(ConanFile):
     def cmake(self):
         generator = 'Xcode' if self.settings.os == 'iOS' else 'Ninja'
         cmake = CMake(self, generator=generator)
-        #cmake.definitions['QT_HOST_PATH'] = 'TODO'
+        # cmake.definitions['QT_HOST_PATH'] = 'TODO'
+        cmake.definitions['CONAN_CACHE_FOLDER'] = Conan().cache_folder
         cmake.definitions['CONAN_DISABLE_CHECK_COMPILER'] = True
 
         cmake.definitions['CMAKE_SYSTEM_NAME'] = self.cmake_system_name

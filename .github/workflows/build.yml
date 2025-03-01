@@ -19,7 +19,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
@@ -31,7 +31,7 @@ jobs:
       - name: Retrieve the version
         id: gitver
         run: |
-          echo "app_version=$(git describe --abbrev=4)" >> $GITHUB_OUTPUT
+          echo "app_version=$(git describe --tags --abbrev=4)" >> $GITHUB_OUTPUT
 
       - name: Prepare Ubuntu
         run: |
@@ -67,7 +67,7 @@ jobs:
         working-directory: ./build
         run: |
           source ${GITHUB_WORKSPACE}/.venv/bin/activate
-          conan install .. -s compiler.version=9
+          conan install ..
 
       - name: Build the application
         working-directory: ./build
@@ -99,11 +99,19 @@ jobs:
           path: unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
           compression-level: 0
 
-      - name: Release with Notes
-        uses: softprops/action-gh-release@v1
-        if: ${{ startsWith(github.ref_name, 'release/') || github.ref_type == 'tag' }}
+      - name: Publish prerelease
+        uses: softprops/action-gh-release@v2
+        if: ${{ startsWith(github.ref_name, 'release/') }}
+        with:
+          prerelease: true
+          draft: true
+          name: "Release candidate ${{ steps.gitver.outputs.app_version }}"
+          files:
+            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        if: ${{ github.ref_type == 'tag' }}
         with:
           files:
             unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
