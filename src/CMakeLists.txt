@@ -39,15 +39,21 @@ else()
     )
 endif()
 
+set_target_properties(
+  ${PROJECT_NAME} PROPERTIES
+    WIN32_EXECUTABLE TRUE
+    MACOSX_BUNDLE TRUE
+)
+
 qt_add_qml_module(
   ${PROJECT_NAME}
     URI unixcmd
     VERSION 1.0
     QML_FILES
-  qml/about_dialog.qml
-  qml/copy_dialog.qml
-  qml/create_directory_dialog.qml
-  qml/file_processing_dialog.qml
+      qml/about_dialog.qml
+      qml/copy_dialog.qml
+      qml/create_directory_dialog.qml
+      qml/file_processing_dialog.qml
 )
 
 target_link_libraries(
@@ -61,78 +67,20 @@ target_link_libraries(
       Qt6::Widgets
 )
 
-include(cmake/ios.cmake)
 if(APPLE)
   include(cmake/macos.cmake)
 endif()
 
-install(CODE "include(${CMAKE_SOURCE_DIR}/src/cmake/install.cmake)")
-install(CODE "include(${CMAKE_SOURCE_DIR}/src/cmake/utils.cmake)")
-install(CODE "set(CONAN_CACHE_FOLDER \"${CONAN_CACHE_FOLDER}\")")
+install(
+  TARGETS ${PROJECT_NAME}
+  BUNDLE DESTINATION .
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 
-if(LINUX)
-  install(CODE [[
-    set(TARGETS $<TARGET_FILE:unixcmd> $<TARGET_FILE:Qt6::QXcbIntegrationPlugin>)
-    set(BUNDLE_LIB_RELATIVE_DIR "lib")
-    set(BUNDLE_PLATFORMS_RELATIVE_DIR "plugins/platforms")
-  ]])
-elseif(MACOS)
-  set(BUNDLE_OPTIONS BUNDLE DESTINATION .)
-  install(CODE [[
-    set(MACOS TRUE)
-    set(TARGETS $<TARGET_FILE:unixcmd> $<TARGET_FILE:Qt6::QCocoaIntegrationPlugin>)
-    set(BUNDLE_CONTENTS_RELATIVE_DIR "unixcmd.app/Contents")
-    set(BUNDLE_LIB_RELATIVE_DIR "${BUNDLE_CONTENTS_RELATIVE_DIR}/Frameworks")
-    set(BUNDLE_PLATFORMS_RELATIVE_DIR "${BUNDLE_CONTENTS_RELATIVE_DIR}/PlugIns/platforms")
-  ]])
-elseif(WIN32)
-  set(BUNDLE_OPTIONS DESTINATION .)
-  install(CODE [[
-    set(TARGETS $<TARGET_FILE:unixcmd> $<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>)
-    set(BUNDLE_LIB_RELATIVE_DIR "")
-    set(BUNDLE_PLATFORMS_RELATIVE_DIR "platforms")
-  ]])
-else()
-  message(WARNING "Unsupported platform")
-endif()
+qt_generate_deploy_qml_app_script(
+  TARGET ${PROJECT_NAME}
+  MACOS_BUNDLE_POST_BUILD
+  FILENAME_VARIABLE deploy_script
+)
 
-install(TARGETS ${PROJECT_NAME} ${BUNDLE_OPTIONS})
-
-install(CODE [[
-  file(GET_RUNTIME_DEPENDENCIES
-    RESOLVED_DEPENDENCIES_VAR APP_LIBRARIES
-    UNRESOLVED_DEPENDENCIES_VAR APP_LIBRARIES_UNRES
-    CONFLICTING_DEPENDENCIES_PREFIX APP_LIBRARIES_CONFLICTING_DEPENDENCIES
-    EXECUTABLES ${TARGETS}
-  )
-
-  foreach(LIBRARY ${APP_LIBRARIES})
-    check_starts_with(LIBRARY "${CONAN_CACHE_FOLDER}" IS_CONAN_LIBRARY)
-    if(NOT IS_CONAN_LIBRARY)
-      check_starts_with(LIBRARY "${CMAKE_BINARY_DIR}" IS_LOCAL_LIBRARY)
-
-      if(NOT IS_LOCAL_LIBRARY)
-        continue()
-      endif()
-    endif()
-
-    install_library(${LIBRARY} ${CMAKE_INSTALL_PREFIX}/${BUNDLE_LIB_RELATIVE_DIR})
-  endforeach()
-]])
-
-if(LINUX)
-  install(CODE [[
-    install_platform_plugin_file($<TARGET_FILE:Qt6::QXcbIntegrationPlugin>
-      ${CMAKE_INSTALL_PREFIX}/${BUNDLE_PLATFORMS_RELATIVE_DIR})
-  ]])
-elseif(MACOS)
-  install(CODE [[
-    install_platform_plugin_file($<TARGET_FILE:Qt6::QCocoaIntegrationPlugin>
-      ${CMAKE_INSTALL_PREFIX}/${BUNDLE_PLATFORMS_RELATIVE_DIR})
-  ]])
-elseif(WIN32)
-  install(CODE [[
-    install_platform_plugin_file($<TARGET_FILE:Qt6::QWindowsIntegrationPlugin>
-      ${CMAKE_INSTALL_PREFIX}/${BUNDLE_PLATFORMS_RELATIVE_DIR})
-  ]])
-endif()
+install(SCRIPT ${deploy_script})
