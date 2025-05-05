@@ -10,7 +10,6 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QStandardItem>
-#include <QStandardItemModel>
 #include <QTableView>
 #include <QTimer>
 #include <QtConcurrent/QtConcurrentRun>
@@ -177,7 +176,7 @@ DirectoryView::DirectoryView(QWidget* parent) : QTableView(parent), d(new Privat
                 model()->setData(directoryModelIndex, QVariant::fromValue(info),
                     DirectoryModelIndex::SizeCalculationInfoRole);
 
-                QtConcurrent::run([this, directoryModelIndex, fileInfo] {
+                (void)QtConcurrent::run([this, directoryModelIndex, fileInfo] {
                     const std::function<qint64(const QFileInfo&)> calculateRecursive =
                         [this, &calculateRecursive](const QFileInfo& file) -> qint64
                         {
