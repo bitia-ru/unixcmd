@@ -1,6 +1,10 @@
-Crossplatform double-panel file manager
+Cross-platform double-panel file manager
 ===================
 
-![UnixCMD screenshot](unixcmd.png)
+Runs on Windows, Linux, and macOS.
 
-Under development
+Inspired by Total Commander.
+
+Currently is in development — not recommended for use before the first release.
+
+![UnixCMD screenshot](unixcmd.png)
