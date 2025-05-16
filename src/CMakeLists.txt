@@ -71,6 +71,8 @@ if(APPLE)
   include(cmake/macos.cmake)
 endif()
 
+include(cmake/install_tools.cmake)
+
 install(
   TARGETS ${PROJECT_NAME}
   BUNDLE DESTINATION .
@@ -84,3 +86,5 @@ qt_generate_deploy_qml_app_script(
 )
 
 install(SCRIPT ${deploy_script})
+
+install_license()

@@ -1,4 +1,6 @@
-set_target_properties(${PROJECT_NAME} PROPERTIES
+set_target_properties(
+  ${PROJECT_NAME} PROPERTIES
   MACOSX_BUNDLE_BUNDLE_NAME "UnixCMD"
   MAIN_NIBFILE "UnixCMD"
-  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist.in)
+  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/resources/Info.plist.in
+)
