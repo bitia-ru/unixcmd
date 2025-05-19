@@ -69,6 +69,7 @@ jobs:
 
       - name: Zipping package
         run: |
+          Remove-Item "unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}/conan*" -Force
           Compress-Archive unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }} unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.zip
           dir
 

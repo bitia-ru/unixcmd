@@ -71,7 +71,7 @@ if(APPLE)
   include(cmake/macos.cmake)
 endif()
 
-include(cmake/install_tools.cmake)
+include(cmake/distribution.cmake)
 
 install(
   TARGETS ${PROJECT_NAME}
