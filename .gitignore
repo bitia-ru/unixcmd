@@ -2,3 +2,5 @@
 .DS_Store
 /.idea/QtSettings.xml
 /.venv
+.env
+/package
