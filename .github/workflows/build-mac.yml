@@ -81,13 +81,15 @@ jobs:
           security unlock-keychain -p password unixcmd.keychain
           security import cert.p12 -k unixcmd.keychain -P ${{ secrets.APPLE_DEV_CERT_PW }} -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k password unixcmd.keychain
-          codesign -s "Developer ID Application: ${{ secrets.APPLE_AUTHOR_NAME }} (${{ secrets.APPLE_TEAM_ID }})" --force --deep ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}/unixcmd.app
+          codesign -s "Developer ID Application: ${{ secrets.APPLE_AUTHOR_NAME }} (${{ secrets.APPLE_TEAM_ID }})" --force --deep --options runtime ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}/unixcmd.app
         env:
           APPLE_DEV_CERT: ${{ secrets.APPLE_DEV_CERT }}
 
-      - name: Creating dmg
+      - name: Creating dmg and apply to the notary
         run: |
           hdiutil create -volname "UnixCMD" -srcfolder ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }} -ov -format UDZO unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg
+          xcrun notarytool submit unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg --apple-id "${{ secrets.APPLE_ID }}" --team-id "${{ secrets.APPLE_TEAM_ID }}" --password "${{ secrets.APPLE_NOTARIZATION_PASSWORD }}" --wait
+          xcrun stapler staple unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg
 
       - name: Uploading archive
         uses: actions/upload-artifact@v4
