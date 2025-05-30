@@ -3,16 +3,16 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>UnixCMD</string>
+    <string>unixcmd</string>
 
     <key>CFBundleIdentifier</key>
     <string>pro.alev.unixcmd</string>
 
     <key>CFBundleVersion</key>
-    <string>1.0</string>
+    <string>0.0.1</string>
 
     <key>CFBundleExecutable</key>
-    <string>UnixCMD</string>
+    <string>unixcmd</string>
 
     <key>CFBundlePackageType</key>
     <string>APPL</string>
