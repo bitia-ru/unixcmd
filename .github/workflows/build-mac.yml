@@ -35,7 +35,7 @@ jobs:
 
       - name: Prepare macOS
         run: |
-          brew install tree
+          brew install tree create-dmg
 
       - name: Set up python venv
         run: |
@@ -87,7 +87,14 @@ jobs:
 
       - name: Creating dmg and apply to the notary
         run: |
-          hdiutil create -volname "UnixCMD" -srcfolder ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }} -ov -format UDZO unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg
+          mkdir unixcmd-dmg
+          cp -af ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}/unixcmd.app ./unixcmd-dmg/
+          create-dmg --volname "UnixCMD" \
+            --window-pos 200 120 --window-size 500 300 \
+            --icon-size 100 --icon "UnixCMD.app" 100 100 \
+            --app-drop-link 400 100 \
+            --hide-extension "UnixCMD.app" \
+            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg ./unixcmd-dmg
           xcrun notarytool submit unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg --apple-id "${{ secrets.APPLE_ID }}" --team-id "${{ secrets.APPLE_TEAM_ID }}" --password "${{ secrets.APPLE_NOTARIZATION_PASSWORD }}" --wait
           xcrun stapler staple unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg
 
