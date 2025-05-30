@@ -85,21 +85,16 @@ jobs:
         env:
           APPLE_DEV_CERT: ${{ secrets.APPLE_DEV_CERT }}
 
-      - name: Zipping package
+      - name: Creating dmg
         run: |
-          tar -cJvf \
-            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz \
-            --exclude 'conaninfo.txt' \
-            --exclude 'conanmanifest.txt' \
-            ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
+          hdiutil create -volname "UnixCMD" -srcfolder ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }} -ov -format UDZO unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg
 
       - name: Uploading archive
         uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref_name, 'release/') && github.ref_type != 'tag' }}
         with:
           name: unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
-          path: unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
-          compression-level: 0
+          path: unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg
 
       - name: Publish prerelease
         uses: softprops/action-gh-release@v2
@@ -109,11 +104,11 @@ jobs:
           draft: true
           name: "Release candidate ${{ steps.gitver.outputs.app_version }}"
           files:
-            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
+            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
         if: ${{ github.ref_type == 'tag' }}
         with:
           files:
-            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
+            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.dmg
