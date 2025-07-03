@@ -1,6 +1,8 @@
 /cmake-build-*
+/build
 .DS_Store
 /.idea/QtSettings.xml
 /.venv
 .env
 /package
+/tools
