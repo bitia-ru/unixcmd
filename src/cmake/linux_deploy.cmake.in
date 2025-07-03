@@ -1,0 +1,80 @@
+set(LINUXDEPLOY_TOOL "@LINUXDEPLOY_TOOL@")
+set(LINUXDEPLOY_QT_PLUGIN "@LINUXDEPLOY_QT_PLUGIN@")
+set(PROJECT_NAME "@PROJECT_NAME@")
+set(BINARY_DIR "@CMAKE_BINARY_DIR@")
+set(SOURCE_DIR "@CMAKE_SOURCE_DIR@")
+
+find_program(EXECUTABLE_PATH "@PROJECT_NAME@"
+    PATHS "@CMAKE_BINARY_DIR@/bin" 
+          "@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_BINDIR@"
+          "@CMAKE_BINARY_DIR@"
+    NO_DEFAULT_PATH
+)
+
+if(NOT EXECUTABLE_PATH)
+    message(FATAL_ERROR "Could not find executable @PROJECT_NAME@")
+endif()
+
+message(STATUS "Found executable: ${EXECUTABLE_PATH}")
+
+set(APPDIR_PATH "@CMAKE_BINARY_DIR@/@PROJECT_NAME@.AppDir")
+file(MAKE_DIRECTORY "${APPDIR_PATH}")
+file(MAKE_DIRECTORY "${APPDIR_PATH}/usr/bin")
+
+file(COPY "${EXECUTABLE_PATH}" DESTINATION "${APPDIR_PATH}/usr/bin")
+
+if(EXISTS "@CMAKE_SOURCE_DIR@/LICENSE")
+    file(COPY "@CMAKE_SOURCE_DIR@/LICENSE" DESTINATION "${APPDIR_PATH}")
+endif()
+
+set(DESKTOP_FILE_CONTENT
+"[Desktop Entry]
+Type=Application
+Name=@PROJECT_NAME@
+Comment=Cross-platform double-panel file manager
+Exec=@PROJECT_NAME@
+Icon=@PROJECT_NAME@
+Categories=Utility;FileManager;
+Terminal=false
+StartupNotify=true
+")
+
+file(WRITE "${APPDIR_PATH}/@PROJECT_NAME@.desktop" "${DESKTOP_FILE_CONTENT}")
+
+configure_file("@CMAKE_SOURCE_DIR@/src/resources/@PROJECT_NAME@-48.png" "${APPDIR_PATH}/@PROJECT_NAME@.png" COPYONLY)
+
+execute_process(
+    COMMAND chmod +x "${LINUXDEPLOY_TOOL}"
+    RESULT_VARIABLE CHMOD_RESULT
+)
+
+execute_process(
+    COMMAND chmod +x "${LINUXDEPLOY_QT_PLUGIN}"
+    RESULT_VARIABLE CHMOD_RESULT
+)
+
+set(ENV{LINUXDEPLOY_PLUGIN_QT_PATH} "${LINUXDEPLOY_QT_PLUGIN}")
+
+message(STATUS "Running linuxdeploy to create AppImage...")
+execute_process(
+    COMMAND "${LINUXDEPLOY_TOOL}"
+        --appdir "${APPDIR_PATH}"
+        --executable "${APPDIR_PATH}/usr/bin/@PROJECT_NAME@"
+        --desktop-file "${APPDIR_PATH}/@PROJECT_NAME@.desktop"
+        --icon-file "${APPDIR_PATH}/@PROJECT_NAME@.png"
+        --plugin qt
+        --output appimage
+    WORKING_DIRECTORY "@CMAKE_BINARY_DIR@"
+    RESULT_VARIABLE LINUXDEPLOY_RESULT
+    OUTPUT_VARIABLE LINUXDEPLOY_OUTPUT
+    ERROR_VARIABLE LINUXDEPLOY_ERROR
+)
+
+if(NOT LINUXDEPLOY_RESULT EQUAL 0)
+    message(STATUS "linuxdeploy output: ${LINUXDEPLOY_OUTPUT}")
+    message(STATUS "linuxdeploy error: ${LINUXDEPLOY_ERROR}")
+    message(FATAL_ERROR "linuxdeploy failed with exit code ${LINUXDEPLOY_RESULT}")
+endif()
+
+message(STATUS "Linux deployment completed successfully")
+message(STATUS "AppImage created in: @CMAKE_BINARY_DIR@")

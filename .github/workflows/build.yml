@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - release/*
+      - '*/fix-*'
     tags:
       - 'v*'
 
@@ -60,6 +61,13 @@ jobs:
           source ${GITHUB_WORKSPACE}/.venv/bin/activate
           conan remote add peclet http://conan.kpas.alev.pro False
 
+      - name: Download linuxdeploy tools
+        run: |
+          mkdir -p tools
+          wget -O tools/linuxdeploy-x86_64.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -O tools/linuxdeploy-plugin-qt-x86_64.AppImage https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x tools/*.AppImage
+
       - name: Make build directory
         run: mkdir build && mkdir unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
 
@@ -83,21 +91,13 @@ jobs:
           conan package -bf ./build -pf ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }} .
           tree ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
 
-      - name: Zipping package
-        run: |
-          tar -cJvf \
-            unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz \
-            --exclude 'conaninfo.txt' \
-            --exclude 'conanmanifest.txt' \
-            ./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
-
       - name: Uploading archive
         uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref_name, 'release/') && github.ref_type != 'tag' }}
         with:
           name: unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
-          path: unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.tar.xz
-          compression-level: 0
+          path: ./build/unixcmd-x86_64.AppImage
+          compression-level: 9
 
       - name: Publish prerelease
         uses: softprops/action-gh-release@v2

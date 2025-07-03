@@ -79,12 +79,17 @@ install(
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-qt_generate_deploy_qml_app_script(
-  TARGET ${PROJECT_NAME}
-  MACOS_BUNDLE_POST_BUILD
-  FILENAME_VARIABLE deploy_script
-)
-
-install(SCRIPT ${deploy_script})
+# Platform-specific deployment
+if(APPLE)
+  qt_generate_deploy_qml_app_script(
+    TARGET ${PROJECT_NAME}
+    MACOS_BUNDLE_POST_BUILD
+    FILENAME_VARIABLE deploy_script
+  )
+  install(SCRIPT ${deploy_script})
+elseif(UNIX AND NOT APPLE)
+  include(cmake/linux.cmake)
+  install(SCRIPT ${deploy_script})
+endif()
 
 install_license()
