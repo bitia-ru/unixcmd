@@ -1,4 +1,4 @@
-#include "copy_dialog.h"
+#include "move_copy_dialog.h"
 
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -6,21 +6,22 @@
 #include <QQuickWindow>
 
 
-struct CopyDialog::Private
+struct MoveCopyDialog::Private
 {
     QQmlEngine engine;
     QQmlComponent component;
     QQuickWindow* window;
+    OperationType operationType;
 
-    Private()
-        : component(&engine)
+    Private(OperationType type)
+        : component(&engine), operationType(type)
     {
     }
 };
 
-CopyDialog::CopyDialog(QObject* parent, const QString& destination) : d(new Private), QObject(parent)
+MoveCopyDialog::MoveCopyDialog(QObject* parent, OperationType operationType, const QString& destination, int fileCount) : d(new Private(operationType)), QObject(parent)
 {
-    connect(&d->component, &QQmlComponent::statusChanged, [this, destination](const QQmlComponent::Status status)
+    connect(&d->component, &QQmlComponent::statusChanged, [this, destination, fileCount](const QQmlComponent::Status status)
     {
         switch (status) {
         case QQmlComponent::Error:
@@ -33,6 +34,8 @@ CopyDialog::CopyDialog(QObject* parent, const QString& destination) : d(new Priv
             QObject* obj = d->component.createWithInitialProperties(
                 QVariantMap{
                     {"destination", destination},
+                    {"operationType", static_cast<int>(d->operationType)},
+                    {"fileCount", fileCount},
                 });
 
             if (obj) {
@@ -51,18 +54,18 @@ CopyDialog::CopyDialog(QObject* parent, const QString& destination) : d(new Priv
         }
     });
 
-    d->component.loadUrl(QUrl("qrc:/unixcmd/qml/copy_dialog.qml"));
+    d->component.loadUrl(QUrl("qrc:/unixcmd/qml/move_copy_dialog.qml"));
 }
 
-CopyDialog::~CopyDialog() = default;
+MoveCopyDialog::~MoveCopyDialog() = default;
 
-void CopyDialog::close() const
+void MoveCopyDialog::close() const
 {
     if (d->window)
         d->window->close();
 }
 
-void CopyDialog::onAccepted(const QString& destination)
+void MoveCopyDialog::onAccepted(const QString& destination)
 {
     close();
 
@@ -70,7 +73,7 @@ void CopyDialog::onAccepted(const QString& destination)
     emit closed();
 }
 
-void CopyDialog::onCanceled()
+void MoveCopyDialog::onCanceled()
 {
     close();
 

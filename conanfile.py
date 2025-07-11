@@ -14,7 +14,7 @@ class QtUnixCmdConan(ConanFile):
     exports_sources = (
         'CMakeLists.txt',
         'main.cpp',
-        'qml/copy_dialog.qml',
+        'qml/move_copy_dialog.qml',
         'qml.qrc'
     )
 

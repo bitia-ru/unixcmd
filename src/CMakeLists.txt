@@ -15,8 +15,8 @@ else()
       ${PLATFORM_DEPENDENT_ARGUMENTS}
       about_dialog.cpp
       about_dialog.h
-      copy_dialog.cpp
-      copy_dialog.h
+      move_copy_dialog.cpp
+      move_copy_dialog.h
       create_directory_dialog.cpp
       create_directory_dialog.h
       directory_model.cpp
@@ -51,7 +51,7 @@ qt_add_qml_module(
     VERSION 1.0
     QML_FILES
       qml/about_dialog.qml
-      qml/copy_dialog.qml
+      qml/move_copy_dialog.qml
       qml/create_directory_dialog.qml
       qml/file_processing_dialog.qml
 )
