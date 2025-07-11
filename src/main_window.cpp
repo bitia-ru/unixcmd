@@ -1,7 +1,7 @@
 #include "main_window.h"
 
 #include "about_dialog.h"
-#include "copy_dialog.h"
+#include "move_copy_dialog.h"
 #include "create_directory_dialog.h"
 #include "directory_view.h"
 #include "directory_widget.h"
@@ -84,6 +84,9 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             return true;
         case Qt::Key_F5:
             copySelection();
+            return true;
+        case Qt::Key_F6:
+            moveSelection();
             return true;
         case Qt::Key_F7:
             createDirectory();
@@ -211,11 +214,13 @@ void MainWindow::copySelection() {
     if (filesToCommand.isEmpty())
         return;
 
-    auto copyDialog = new CopyDialog(
+    auto copyDialog = new MoveCopyDialog(
         this,
+        OperationType::Copy,
         filesToCommand.size() == 1
             ? destinationPanelWidget()->view()->directory().absoluteFilePath(filesToCommand.first().fileName())
-            : destinationPanelWidget()->view()->directory().absolutePath() + "/"
+            : destinationPanelWidget()->view()->directory().absolutePath() + "/",
+        filesToCommand.size()
     );
     auto fileProcessingDialog = new FileProcessingDialog(this, "Copying files");
 
@@ -230,17 +235,17 @@ void MainWindow::copySelection() {
         watcher->deleteLater();
     });
 
-    connect(copyDialog, &CopyDialog::closed, [this, copyDialog] {
+    connect(copyDialog, &MoveCopyDialog::closed, [this, copyDialog] {
         copyDialog->deleteLater();
     });
 
-    connect(copyDialog, &CopyDialog::rejected, [this, fileProcessingDialog, watcher] {
+    connect(copyDialog, &MoveCopyDialog::rejected, [this, fileProcessingDialog, watcher] {
         fileProcessingDialog->abort();
         fileProcessingDialog->deleteLater();
         watcher->waitForFinished();
     });
 
-    connect(copyDialog, &CopyDialog::accepted,
+    connect(copyDialog, &MoveCopyDialog::accepted,
         [this, filesToCommand, fileProcessingDialog, aborted, watcher](const QString& destination)
         {
             const auto future = QtConcurrent::run(
@@ -349,6 +354,140 @@ void MainWindow::copySelection() {
 
                     if (activePanelWidget()->view()->directory() == destinationDir)
                         activePanelWidget()->view()->reload();
+                }
+            );
+
+            watcher->setFuture(future);
+        }
+    );
+}
+
+void MainWindow::moveSelection() {
+    const auto filesToCommand = this->filesToCommand();
+
+    if (filesToCommand.isEmpty())
+        return;
+
+    auto moveDialog = new MoveCopyDialog(
+        this,
+        OperationType::Move,
+        filesToCommand.size() == 1
+            ? destinationPanelWidget()->view()->directory().absoluteFilePath(filesToCommand.first().fileName())
+            : destinationPanelWidget()->view()->directory().absolutePath() + "/",
+        filesToCommand.size()
+    );
+    auto fileProcessingDialog = new FileProcessingDialog(this, "Moving files");
+
+    auto aborted = new std::atomic(false);
+    auto watcher = new QFutureWatcher<void>(this);
+
+    connect(fileProcessingDialog, &FileProcessingDialog::aborted, [aborted] { *aborted = true; });
+
+    connect(watcher, &QFutureWatcher<void>::finished, [fileProcessingDialog, watcher] {
+        fileProcessingDialog->abort();
+        fileProcessingDialog->deleteLater();
+        watcher->deleteLater();
+    });
+
+    connect(moveDialog, &MoveCopyDialog::closed, [this, moveDialog] {
+        moveDialog->deleteLater();
+    });
+
+    connect(moveDialog, &MoveCopyDialog::rejected, [this, fileProcessingDialog, watcher] {
+        fileProcessingDialog->abort();
+        fileProcessingDialog->deleteLater();
+        watcher->waitForFinished();
+    });
+
+    connect(moveDialog, &MoveCopyDialog::accepted,
+        [this, filesToCommand, fileProcessingDialog, aborted, watcher](const QString& destination)
+        {
+            const auto future = QtConcurrent::run(
+                [this, destination, filesToCommand, fileProcessingDialog, aborted]() -> void
+                {
+                    QMetaObject::invokeMethod(fileProcessingDialog, [fileProcessingDialog] { fileProcessingDialog->show(); });
+
+                    const auto moveFile = [fileProcessingDialog](const QFileInfo& file, const QString& destinationPath) -> bool
+                    {
+                        QMetaObject::invokeMethod(fileProcessingDialog, [fileProcessingDialog, file] {
+                            fileProcessingDialog->setStatus(QString("Moving file '%1'").arg(file.fileName()));
+                        });
+
+                        if (file.isFile()) {
+                            if (!QFile::rename(file.absoluteFilePath(), destinationPath)) {
+                                const auto selectedButton = QMessageBox::question(
+                                    nullptr,
+                                    "Error moving file",
+                                    QString("Failed to move file '%1'").arg(file.fileName()),
+                                    QMessageBox::Ignore | QMessageBox::Abort,
+                                    QMessageBox::Abort
+                                );
+
+                                if (selectedButton == QMessageBox::Abort)
+                                    return false;
+                            }
+                        } else if (file.isSymLink()) {
+                            qDebug() << "Symlinks are not supported, ignoring: " << file.absoluteFilePath();
+                        } else if (file.isDir()) {
+                            if (!QDir().rename(file.absoluteFilePath(), destinationPath)) {
+                                QMessageBox::critical(
+                                    nullptr,
+                                    "Error moving directory",
+                                    QString("Failed to move directory '%1'").arg(file.fileName())
+                                );
+
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    };
+
+                    const bool endsWithSlash = destination.endsWith("/");
+                    const QFileInfo destinationInfo(destination);
+                    const QDir destinationDir = endsWithSlash
+                        ? QDir(destination)
+                        : destinationInfo.dir();
+
+                    if (filesToCommand.size() > 1) {
+                        if (!destination.endsWith("/")) {
+                            QMessageBox::critical(
+                                nullptr,
+                                "Error moving files",
+                                "Multiple files can only be moved to a directory"
+                            );
+
+                            return;
+                        }
+
+                        for (const auto& file : filesToCommand)
+                            if (!moveFile(file, destinationDir.filePath(file.fileName()))) {
+                                QMessageBox::critical(
+                                    nullptr,
+                                    "Error moving files",
+                                    QString("Failed to move file '%1'").arg(file.fileName())
+                                );
+
+                                break;
+                            }
+                    } else {
+                        const auto& file = filesToCommand.first();
+                        const auto destinationFileName = endsWithSlash ? file.fileName() : destinationInfo.fileName();
+                        if (!moveFile(file, destinationDir.filePath(destinationFileName)))
+                            QMessageBox::critical(
+                                nullptr,
+                                "Error moving files",
+                                QString("Failed to move file '%1'").arg(file.fileName())
+                            );
+                    }
+
+                    if (destinationPanelWidget()->view()->directory() == destinationDir)
+                        destinationPanelWidget()->view()->reload();
+
+                    if (activePanelWidget()->view()->directory() == destinationDir)
+                        activePanelWidget()->view()->reload();
+
+                    activePanelWidget()->view()->reload();
                 }
             );
 

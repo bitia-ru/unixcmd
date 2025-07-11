@@ -4,13 +4,19 @@
 #include <QObject>
 #include <QScopedPointer>
 
-class CopyDialog final : public QObject
+enum class OperationType
+{
+    Copy,
+    Move
+};
+
+class MoveCopyDialog final : public QObject
 {
     Q_OBJECT
 
 public:
-    CopyDialog(QObject* parent = nullptr, const QString& destination = QString());
-    virtual ~CopyDialog();
+    MoveCopyDialog(QObject* parent = nullptr, OperationType operationType = OperationType::Copy, const QString& destination = QString(), int fileCount = 1);
+    virtual ~MoveCopyDialog();
 
     void close() const;
 

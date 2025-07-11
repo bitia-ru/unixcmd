@@ -3,14 +3,16 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 Window {
-    id: copyDialog
+    id: moveCopyDialog
 
     property string destination: ""
+    property int operationType: 0
+    property int fileCount: 1
 
     signal accepted(destination: string)
     signal canceled()
 
-    title: "Copying files"
+    title: operationType === 0 ? "Copying files" : "Moving files"
     flags: Qt.Dialog | Qt.Modal | Qt.WindowStaysOnTopHint | Qt.MSWindowsFixedSizeDialogHint
 
     minimumWidth: 500
@@ -34,7 +36,11 @@ Window {
             anchors.fill: parent
 
             Label {
-                text: qsTr("Copy file to:")
+                text: {
+                    const operation = operationType === 0 ? "Copy" : "Move";
+                    const fileText = fileCount === 1 ? "file" : "files";
+                    return operation + " " + fileText + " to:";
+                }
                 font.pixelSize: 14
             }
 
@@ -45,7 +51,7 @@ Window {
 
                 Layout.fillWidth: true
                 placeholderText: qsTr("Destination path")
-                text: copyDialog.destination
+                text: moveCopyDialog.destination
 
                 onAccepted: dialog.accept()
             }
@@ -56,11 +62,11 @@ Window {
         onAccepted: accept()
 
         onRejected: {
-            copyDialog.canceled()
+            moveCopyDialog.canceled()
         }
 
         function accept() {
-            copyDialog.accepted(destination.text)
+            moveCopyDialog.accepted(destination.text)
         }
     }
 }
