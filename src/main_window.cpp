@@ -1,12 +1,12 @@
 #include "main_window.h"
 
 #include "about_dialog.h"
-#include "move_copy_dialog.h"
-#include "create_directory_dialog.h"
+#include "functions/copy_move/dialog.h"
+#include "functions/create_directory/dialog.h"
 #include "directory_view.h"
 #include "directory_widget.h"
 #include "double_panel_splitter.h"
-#include "file_processing_dialog.h"
+#include "functions/common/file_processing_dialog.h"
 
 #include <QApplication>
 #include <QDesktopServices>
@@ -214,20 +214,20 @@ void MainWindow::copySelection() {
     if (filesToCommand.isEmpty())
         return;
 
-    auto copyDialog = new MoveCopyDialog(
+    auto copyDialog = new functions::CopyMove::Dialog(
         this,
-        OperationType::Copy,
+        functions::CopyMove::OperationType::Copy,
         filesToCommand.size() == 1
             ? destinationPanelWidget()->view()->directory().absoluteFilePath(filesToCommand.first().fileName())
             : destinationPanelWidget()->view()->directory().absolutePath() + "/",
         filesToCommand.size()
     );
-    auto fileProcessingDialog = new FileProcessingDialog(this, "Copying files");
+    auto fileProcessingDialog = new functions::common::FileProcessingDialog(this, "Copying files");
 
     auto aborted = new std::atomic(false);
     auto watcher = new QFutureWatcher<void>(this);
 
-    connect(fileProcessingDialog, &FileProcessingDialog::aborted, [aborted] { *aborted = true; });
+    connect(fileProcessingDialog, &functions::common::FileProcessingDialog::aborted, [aborted] { *aborted = true; });
 
     connect(watcher, &QFutureWatcher<void>::finished, [fileProcessingDialog, watcher] {
         fileProcessingDialog->abort();
@@ -235,17 +235,17 @@ void MainWindow::copySelection() {
         watcher->deleteLater();
     });
 
-    connect(copyDialog, &MoveCopyDialog::closed, [this, copyDialog] {
+    connect(copyDialog, &functions::CopyMove::Dialog::closed, [this, copyDialog] {
         copyDialog->deleteLater();
     });
 
-    connect(copyDialog, &MoveCopyDialog::rejected, [this, fileProcessingDialog, watcher] {
+    connect(copyDialog, &functions::CopyMove::Dialog::rejected, [this, fileProcessingDialog, watcher] {
         fileProcessingDialog->abort();
         fileProcessingDialog->deleteLater();
         watcher->waitForFinished();
     });
 
-    connect(copyDialog, &MoveCopyDialog::accepted,
+    connect(copyDialog, &functions::CopyMove::Dialog::accepted,
         [this, filesToCommand, fileProcessingDialog, aborted, watcher](const QString& destination)
         {
             const auto future = QtConcurrent::run(
@@ -368,20 +368,20 @@ void MainWindow::moveSelection() {
     if (filesToCommand.isEmpty())
         return;
 
-    auto moveDialog = new MoveCopyDialog(
+    auto moveDialog = new functions::CopyMove::Dialog(
         this,
-        OperationType::Move,
+        functions::CopyMove::OperationType::Move,
         filesToCommand.size() == 1
             ? destinationPanelWidget()->view()->directory().absoluteFilePath(filesToCommand.first().fileName())
             : destinationPanelWidget()->view()->directory().absolutePath() + "/",
         filesToCommand.size()
     );
-    auto fileProcessingDialog = new FileProcessingDialog(this, "Moving files");
+    auto fileProcessingDialog = new functions::common::FileProcessingDialog(this, "Moving files");
 
     auto aborted = new std::atomic(false);
     auto watcher = new QFutureWatcher<void>(this);
 
-    connect(fileProcessingDialog, &FileProcessingDialog::aborted, [aborted] { *aborted = true; });
+    connect(fileProcessingDialog, &functions::common::FileProcessingDialog::aborted, [aborted] { *aborted = true; });
 
     connect(watcher, &QFutureWatcher<void>::finished, [fileProcessingDialog, watcher] {
         fileProcessingDialog->abort();
@@ -389,17 +389,17 @@ void MainWindow::moveSelection() {
         watcher->deleteLater();
     });
 
-    connect(moveDialog, &MoveCopyDialog::closed, [this, moveDialog] {
+    connect(moveDialog, &functions::CopyMove::Dialog::closed, [this, moveDialog] {
         moveDialog->deleteLater();
     });
 
-    connect(moveDialog, &MoveCopyDialog::rejected, [this, fileProcessingDialog, watcher] {
+    connect(moveDialog, &functions::CopyMove::Dialog::rejected, [this, fileProcessingDialog, watcher] {
         fileProcessingDialog->abort();
         fileProcessingDialog->deleteLater();
         watcher->waitForFinished();
     });
 
-    connect(moveDialog, &MoveCopyDialog::accepted,
+    connect(moveDialog, &functions::CopyMove::Dialog::accepted,
         [this, filesToCommand, fileProcessingDialog, aborted, watcher](const QString& destination)
         {
             const auto future = QtConcurrent::run(
@@ -498,13 +498,13 @@ void MainWindow::moveSelection() {
 
 void MainWindow::createDirectory()
 {
-    auto createDirectoryDialog = new CreateDirectoryDialog(this);
+    auto createDirectoryDialog = new functions::CreateDirectory::Dialog(this);
 
-    connect(createDirectoryDialog, &CreateDirectoryDialog::closed, [this, createDirectoryDialog] {
+    connect(createDirectoryDialog, &functions::CreateDirectory::Dialog::closed, [this, createDirectoryDialog] {
         createDirectoryDialog->deleteLater();
     });
 
-    connect(createDirectoryDialog, &CreateDirectoryDialog::accepted, [this](const QString& directoryName) {
+    connect(createDirectoryDialog, &functions::CreateDirectory::Dialog::accepted, [this](const QString& directoryName) {
         if (const QDir dir(activePanelWidget()->view()->directory()); !dir.mkdir(directoryName)) {
             QMessageBox::critical(
                 this,
