@@ -4,6 +4,9 @@
 #include <QObject>
 #include <QScopedPointer>
 
+namespace functions {
+namespace common {
+
 class FileProcessingDialog final : public QObject
 {
     Q_OBJECT
@@ -28,3 +31,6 @@ private:
     struct Private;
     QScopedPointer<Private> d;
 };
+
+} // namespace common
+} // namespace functions

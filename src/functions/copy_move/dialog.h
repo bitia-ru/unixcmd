@@ -4,19 +4,22 @@
 #include <QObject>
 #include <QScopedPointer>
 
+namespace functions {
+namespace CopyMove {
+
 enum class OperationType
 {
     Copy,
     Move
 };
 
-class MoveCopyDialog final : public QObject
+class Dialog final : public QObject
 {
     Q_OBJECT
 
 public:
-    MoveCopyDialog(QObject* parent = nullptr, OperationType operationType = OperationType::Copy, const QString& destination = QString(), int fileCount = 1);
-    virtual ~MoveCopyDialog();
+    Dialog(QObject* parent = nullptr, OperationType operationType = OperationType::Copy, const QString& destination = QString(), int fileCount = 1);
+    virtual ~Dialog();
 
     void close() const;
 
@@ -33,3 +36,6 @@ private:
     struct Private;
     QScopedPointer<Private> d;
 };
+
+} // namespace CopyMove
+} // namespace functions

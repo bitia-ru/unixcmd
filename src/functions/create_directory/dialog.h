@@ -4,13 +4,16 @@
 #include <QObject>
 #include <QScopedPointer>
 
-class CreateDirectoryDialog final : public QObject
+namespace functions {
+namespace CreateDirectory {
+
+class Dialog final : public QObject
 {
     Q_OBJECT
 
 public:
-    CreateDirectoryDialog(QObject* parent = nullptr);
-    virtual ~CreateDirectoryDialog();
+    Dialog(QObject* parent = nullptr);
+    virtual ~Dialog();
 
     void close() const;
 
@@ -27,3 +30,6 @@ private:
     struct Private;
     QScopedPointer<Private> d;
 };
+
+} // namespace CreateDirectory
+} // namespace functions
