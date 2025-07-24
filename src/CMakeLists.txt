@@ -15,6 +15,8 @@ else()
       ${PLATFORM_DEPENDENT_ARGUMENTS}
       about_dialog.cpp
       about_dialog.h
+      application.cpp
+      application.h
       move_copy_dialog.cpp
       move_copy_dialog.h
       create_directory_dialog.cpp

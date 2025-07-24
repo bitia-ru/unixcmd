@@ -1,6 +1,7 @@
 #include "main_window.h"
 
 #include "about_dialog.h"
+#include "application.h"
 #include "move_copy_dialog.h"
 #include "create_directory_dialog.h"
 #include "directory_view.h"
@@ -43,6 +44,12 @@ MainWindow::MainWindow()
 
     splitter->addWidget(d->leftPanel = new DirectoryWidget(splitter));
     splitter->addWidget(d->rightPanel = new DirectoryWidget(splitter));
+
+    if (Application::shouldStartFromUserHome()) {
+        const QString homeDir = QDir::homePath();
+        d->leftPanel->view()->setDirectory(homeDir);
+        d->rightPanel->view()->setDirectory(homeDir);
+    }
 
     connect(d->leftPanel->view(), &DirectoryView::focusIn, [this] { setActivePanel(LEFT); });
     connect(d->leftPanel->view(), &DirectoryView::fileTriggered, this, &MainWindow::open);

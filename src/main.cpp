@@ -1,18 +1,14 @@
 #include "main_window.h"
-
-#include <QApplication>
-
+#include "application.h"
 
 int main(int argc, char* argv[]) {
-    QApplication app(argc, argv);
+    Application app(argc, argv);
 
     MainWindow window;
 
-    QObject::connect(&window, &MainWindow::closed, &app, &QApplication::quit);
+    QObject::connect(&window, &MainWindow::closed, &app, &Application::quit);
 
     window.show();
 
-    return QApplication::exec();
-
-    return 0;
+    return app.exec();
 }
