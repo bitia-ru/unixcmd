@@ -1,12 +1,14 @@
-#include "move_copy_dialog.h"
+#include "dialog.h"
 
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQmlError>
 #include <QQuickWindow>
 
+namespace functions {
+namespace CopyMove {
 
-struct MoveCopyDialog::Private
+struct Dialog::Private
 {
     QQmlEngine engine;
     QQmlComponent component;
@@ -19,7 +21,7 @@ struct MoveCopyDialog::Private
     }
 };
 
-MoveCopyDialog::MoveCopyDialog(QObject* parent, OperationType operationType, const QString& destination, int fileCount) : d(new Private(operationType)), QObject(parent)
+Dialog::Dialog(QObject* parent, OperationType operationType, const QString& destination, int fileCount) : d(new Private(operationType)), QObject(parent)
 {
     connect(&d->component, &QQmlComponent::statusChanged, [this, destination, fileCount](const QQmlComponent::Status status)
     {
@@ -57,15 +59,15 @@ MoveCopyDialog::MoveCopyDialog(QObject* parent, OperationType operationType, con
     d->component.loadUrl(QUrl("qrc:/unixcmd/qml/move_copy_dialog.qml"));
 }
 
-MoveCopyDialog::~MoveCopyDialog() = default;
+Dialog::~Dialog() = default;
 
-void MoveCopyDialog::close() const
+void Dialog::close() const
 {
     if (d->window)
         d->window->close();
 }
 
-void MoveCopyDialog::onAccepted(const QString& destination)
+void Dialog::onAccepted(const QString& destination)
 {
     close();
 
@@ -73,10 +75,13 @@ void MoveCopyDialog::onAccepted(const QString& destination)
     emit closed();
 }
 
-void MoveCopyDialog::onCanceled()
+void Dialog::onCanceled()
 {
     close();
 
     emit rejected();
     emit closed();
 }
+
+} // namespace CopyMove
+} // namespace functions

@@ -5,6 +5,8 @@
 #include <QQmlError>
 #include <QQuickWindow>
 
+namespace functions {
+namespace common {
 
 struct FileProcessingDialog::Private
 {
@@ -77,3 +79,6 @@ void FileProcessingDialog::onAborted()
 
     emit aborted();
 }
+
+} // namespace common
+} // namespace functions

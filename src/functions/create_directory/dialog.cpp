@@ -1,12 +1,14 @@
-#include "create_directory_dialog.h"
+#include "dialog.h"
 
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQmlError>
 #include <QQuickWindow>
 
+namespace functions {
+namespace CreateDirectory {
 
-struct CreateDirectoryDialog::Private
+struct Dialog::Private
 {
     QQmlEngine engine;
     QQmlComponent component;
@@ -18,7 +20,7 @@ struct CreateDirectoryDialog::Private
     }
 };
 
-CreateDirectoryDialog::CreateDirectoryDialog(QObject* parent) : d(new Private), QObject(parent)
+Dialog::Dialog(QObject* parent) : d(new Private), QObject(parent)
 {
     connect(&d->component, &QQmlComponent::statusChanged, [this](const QQmlComponent::Status status)
     {
@@ -50,15 +52,15 @@ CreateDirectoryDialog::CreateDirectoryDialog(QObject* parent) : d(new Private), 
     d->component.loadUrl(QUrl("qrc:/unixcmd/qml/create_directory_dialog.qml"));
 }
 
-CreateDirectoryDialog::~CreateDirectoryDialog() = default;
+Dialog::~Dialog() = default;
 
-void CreateDirectoryDialog::close() const
+void Dialog::close() const
 {
     if (d->window)
         d->window->close();
 }
 
-void CreateDirectoryDialog::onAccepted(const QString& directoryName)
+void Dialog::onAccepted(const QString& directoryName)
 {
     close();
 
@@ -66,10 +68,13 @@ void CreateDirectoryDialog::onAccepted(const QString& directoryName)
     emit closed();
 }
 
-void CreateDirectoryDialog::onCanceled()
+void Dialog::onCanceled()
 {
     close();
 
     emit rejected();
     emit closed();
 }
+
+} // namespace CreateDirectory
+} // namespace functions

@@ -17,10 +17,10 @@ else()
       about_dialog.h
       application.cpp
       application.h
-      move_copy_dialog.cpp
-      move_copy_dialog.h
-      create_directory_dialog.cpp
-      create_directory_dialog.h
+      functions/copy_move/dialog.cpp
+      functions/copy_move/dialog.h
+      functions/create_directory/dialog.cpp
+      functions/create_directory/dialog.h
       directory_model.cpp
       directory_model.h
       directory_status_bar.cpp
@@ -33,8 +33,8 @@ else()
       directory_widget.h
       double_panel_splitter.cpp
       double_panel_splitter.h
-      file_processing_dialog.cpp
-      file_processing_dialog.h
+      functions/common/file_processing_dialog.cpp
+      functions/common/file_processing_dialog.h
       main.cpp
       main_window.cpp
       main_window.h
