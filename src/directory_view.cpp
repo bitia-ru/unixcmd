@@ -496,7 +496,7 @@ bool DirectoryView::setDirectoryInternal(const QDir& dir, bool showHiddenFiles)
 
         items.append(fileEntry);
 
-        const auto extItem = new QStandardItem(entry.isDir() ? "" : entry.suffix());
+        const auto extItem = new QStandardItem(entry.isDir() ? "" : entry.completeSuffix());
         extItem->setTextAlignment(Qt::AlignCenter);
         extItem->setEditable(false);
         items.append(extItem);
