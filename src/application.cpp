@@ -1,9 +1,10 @@
 #include "application.h"
-#include <unistd.h>
 
 #ifdef Q_OS_WIN
     #include <windows.h>
     #include <io.h>
+#else
+    #include <unistd.h>
 #endif
 
 Application::Application(int& argc, char** argv) : QApplication(argc, argv) {

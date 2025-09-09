@@ -66,13 +66,19 @@ jobs:
         run: |
           ${{ github.workspace }}\venv\Scripts\Activate.ps1
           conan package -bf build -pf unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }} .
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Package generation failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
           tree unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}
 
       - name: Zipping package
         run: |
           Remove-Item "unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}/conan*" -Force
-          Compress-Archive unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }} unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.zip
-          dir
+          $VerbosePreference = "Continue"
+          Compress-Archive -Path "unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}" -DestinationPath "./unixcmd-${{ steps.gitver.outputs.app_version }}-${{ matrix.os }}.zip" -Force -Verbose
+          Write-Host "Files in current directory:"
+          Get-ChildItem -Name
 
       - name: Uploading archive
         uses: actions/upload-artifact@v4
